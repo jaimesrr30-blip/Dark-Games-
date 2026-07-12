@@ -1,0 +1,145 @@
+export const UI_TEMPLATE = `
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <h2>Cargando mundo...</h2>
+  <div id="loading-detail">Generando regiones</div>
+</div>
+
+<div id="main-menu">
+  <h1>PILOTO CÚBICO<br/>MUNDO ABIERTO</h1>
+  <p>Explora un mundo abierto lleno de regiones, misiones, jefes y partidos de fútbol con coches flotantes.
+  Recoge mascotas de todas las rarezas para desbloquear poderes especiales en el estadio.</p>
+  <div id="main-menu-buttons">
+    <button class="btn-arrow primary interactive" id="btn-new-game">Nueva Partida <span class="arrow-icon">➤</span></button>
+    <button class="btn-arrow interactive" id="btn-continue-game">Continuar <span class="arrow-icon">➤</span></button>
+  </div>
+</div>
+
+<div id="hud-top-left">
+  <div id="minimap-wrap" class="panel">
+    <canvas id="minimap-canvas" width="300" height="300"></canvas>
+    <div id="minimap-region-label">Plaza Central</div>
+  </div>
+</div>
+
+<div id="hud-top-right">
+  <div class="currency-row">
+    <div class="currency-pill panel"><span class="icon icon-coin"></span><span id="hud-coins">0</span></div>
+    <div class="currency-pill panel"><span class="icon icon-diamond"></span><span id="hud-diamonds">0</span></div>
+  </div>
+  <div id="level-panel" class="panel">
+    <div id="level-row"><span id="hud-level">Nivel 1</span><span id="hud-xp-label">0 / 100 XP</span></div>
+    <div id="xp-bar-track"><div id="xp-bar-fill"></div></div>
+  </div>
+  <div id="hud-menu-buttons">
+    <button class="btn-arrow small interactive" id="btn-open-missions">Misiones</button>
+    <button class="btn-arrow small interactive" id="btn-open-inventory">Inventario</button>
+    <button class="btn-arrow small interactive" id="btn-open-garage">Garaje</button>
+  </div>
+</div>
+
+<div id="hud-bottom-left" class="panel">
+  <div id="mission-title">Sin misión activa</div>
+  <div id="mission-desc">Explora el mundo para encontrar personajes con misiones.</div>
+  <div id="mission-objectives"></div>
+</div>
+
+<div id="hud-bottom-right">
+  <div id="interact-prompt" class="panel"><span class="key-badge">E</span><span id="interact-label">Interactuar</span></div>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="dialogue-box" class="panel">
+  <div id="dialogue-name">NPC</div>
+  <div id="dialogue-text"></div>
+  <div id="dialogue-footer">
+    <button class="btn-arrow interactive" id="btn-dialogue-next">Continuar <span class="arrow-icon">➤</span></button>
+  </div>
+</div>
+
+<!-- Misiones -->
+<div class="modal-backdrop interactive" id="modal-missions">
+  <div class="modal-window panel">
+    <div class="modal-header">
+      <div class="modal-title">Registro de Misiones</div>
+      <button class="modal-close interactive" data-close="modal-missions">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="tab-btn active interactive" data-mtab="principal">Principales</button>
+      <button class="tab-btn interactive" data-mtab="secundaria">Secundarias</button>
+      <button class="tab-btn interactive" data-mtab="especial">Especiales</button>
+      <button class="tab-btn interactive" data-mtab="oculta">Ocultas</button>
+    </div>
+    <div class="modal-body" id="mission-list"></div>
+  </div>
+</div>
+
+<!-- Inventario -->
+<div class="modal-backdrop interactive" id="modal-inventory">
+  <div class="modal-window panel">
+    <div class="modal-header">
+      <div class="modal-title">Inventario</div>
+      <button class="modal-close interactive" data-close="modal-inventory">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="tab-btn active interactive" data-itab="cosmeticos">Cosméticos</button>
+      <button class="tab-btn interactive" data-itab="mascotas">Mascotas</button>
+      <button class="tab-btn interactive" data-itab="titulos">Títulos</button>
+    </div>
+    <div class="modal-body" id="inventory-list"></div>
+  </div>
+</div>
+
+<!-- Garaje -->
+<div class="modal-backdrop interactive" id="modal-garage">
+  <div class="modal-window panel">
+    <div class="modal-header">
+      <div class="modal-title">Garaje</div>
+      <button class="modal-close interactive" data-close="modal-garage">✕</button>
+    </div>
+    <div id="garage-canvas-wrap">
+      <canvas id="garage-canvas"></canvas>
+      <div class="garage-hint">Arrastra para girar el coche</div>
+    </div>
+    <div class="modal-tabs" id="garage-tabs"></div>
+    <div class="modal-body" id="garage-slot-list"></div>
+  </div>
+</div>
+
+<!-- Tienda -->
+<div class="modal-backdrop interactive" id="modal-shop">
+  <div class="modal-window panel">
+    <div class="modal-header">
+      <div class="modal-title" id="shop-title">Tienda</div>
+      <button class="modal-close interactive" data-close="modal-shop">✕</button>
+    </div>
+    <div class="modal-body" id="shop-list"></div>
+  </div>
+</div>
+
+<!-- HUD de partido -->
+<div id="match-hud">
+  <div id="match-scoreboard" class="panel">
+    <span class="team-score a" id="score-a">0</span>
+    <span id="match-timer">3:00</span>
+    <span class="team-score b" id="score-b">0</span>
+  </div>
+  <div id="boost-bar-wrap"><div id="boost-bar-fill"></div></div>
+</div>
+
+<div id="match-end-screen">
+  <div class="end-card panel">
+    <div class="end-title" id="end-title">¡VICTORIA!</div>
+    <div class="end-score" id="end-score">3 - 1</div>
+    <div class="end-rewards" id="end-rewards"></div>
+    <button class="btn-arrow primary interactive" id="btn-end-continue">Continuar <span class="arrow-icon">➤</span></button>
+  </div>
+</div>
+
+<div id="boss-intro">
+  <div class="boss-name" id="boss-intro-name">JEFE</div>
+  <div class="boss-title" id="boss-intro-title">Título del jefe</div>
+  <button class="btn-arrow gold interactive" id="btn-boss-start">Comenzar Duelo <span class="arrow-icon">➤</span></button>
+</div>
+`;

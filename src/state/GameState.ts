@@ -1,0 +1,330 @@
+import type { OwnedPet } from "../data/pets";
+import type { RegionId } from "../data/regions";
+import { MISSIONS, type MissionDef } from "../data/missions";
+import { ITEMS } from "../data/items";
+
+export interface MissionProgress {
+  missionId: string;
+  progress: number[]; // progreso por objetivo
+  completed: boolean;
+}
+
+export interface ChestState {
+  collected: Record<string, boolean>;
+}
+
+export interface SaveData {
+  version: number;
+  playerName: string;
+  monedas: number;
+  diamantes: number;
+  xp: number;
+  level: number;
+  ownedItems: string[];
+  equipped: Record<string, string>; // slot -> itemId
+  carColor: number;
+  unlockedRegions: RegionId[];
+  defeatedBosses: RegionId[];
+  missions: Record<string, MissionProgress>;
+  activeMissionId: string | null;
+  pets: OwnedPet[];
+  activePetUid: string | null;
+  chests: ChestState;
+  petsCollected: Record<string, boolean>;
+  discoveredSecrets: Record<string, boolean>;
+  goalsScored: number;
+  matchesWon: number;
+  playTimeSec: number;
+}
+
+const SAVE_KEY = "openworld_carball_save_v1";
+
+function defaultSave(): SaveData {
+  return {
+    version: 1,
+    playerName: "Piloto",
+    monedas: 500,
+    diamantes: 20,
+    xp: 0,
+    level: 1,
+    ownedItems: ["color_blanco", "rueda_estandar", "turbo_basico", "gol_confeti", "bocina_clasica", "antena_ninguna", "estela_ninguna", "balon_clasico", "titulo_novato"],
+    equipped: {
+      color: "color_blanco",
+      rueda: "rueda_estandar",
+      turbo: "turbo_basico",
+      explosionGol: "gol_confeti",
+      bocina: "bocina_clasica",
+      antena: "antena_ninguna",
+      estela: "estela_ninguna",
+      balon: "balon_clasico",
+      titulo: "titulo_novato",
+    },
+    carColor: 0xf2f2f2,
+    unlockedRegions: ["hub"],
+    defeatedBosses: [],
+    missions: {},
+    activeMissionId: "m_intro",
+    pets: [],
+    activePetUid: null,
+    chests: { collected: {} },
+    petsCollected: {},
+    discoveredSecrets: {},
+    goalsScored: 0,
+    matchesWon: 0,
+    playTimeSec: 0,
+  };
+}
+
+export function xpForLevel(level: number): number {
+  return Math.round(100 * Math.pow(level, 1.5));
+}
+
+type Listener = () => void;
+
+export class GameState {
+  data: SaveData;
+  private listeners = new Set<Listener>();
+
+  constructor() {
+    this.data = this.load();
+  }
+
+  private load(): SaveData {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as SaveData;
+        return { ...defaultSave(), ...parsed };
+      }
+    } catch (e) {
+      console.warn("No se pudo cargar la partida guardada", e);
+    }
+    return defaultSave();
+  }
+
+  save() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(this.data));
+    } catch (e) {
+      console.warn("No se pudo guardar la partida", e);
+    }
+  }
+
+  resetSave() {
+    this.data = defaultSave();
+    this.save();
+    this.emit();
+  }
+
+  onChange(fn: Listener) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  emit() {
+    for (const l of this.listeners) l();
+  }
+
+  // ---------- Economía ----------
+  addCurrency(monedas: number, diamantes = 0) {
+    this.data.monedas = Math.max(0, this.data.monedas + monedas);
+    this.data.diamantes = Math.max(0, this.data.diamantes + diamantes);
+    this.save();
+    this.emit();
+  }
+
+  canAfford(price: number, currency: "monedas" | "diamantes"): boolean {
+    return this.data[currency] >= price;
+  }
+
+  spend(price: number, currency: "monedas" | "diamantes"): boolean {
+    if (!this.canAfford(price, currency)) return false;
+    this.data[currency] -= price;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  addXp(amount: number) {
+    this.data.xp += amount;
+    let leveledUp = false;
+    while (this.data.xp >= xpForLevel(this.data.level)) {
+      this.data.xp -= xpForLevel(this.data.level);
+      this.data.level += 1;
+      leveledUp = true;
+    }
+    this.save();
+    this.emit();
+    return leveledUp;
+  }
+
+  // ---------- Inventario / equipo ----------
+  ownsItem(id: string): boolean {
+    return this.data.ownedItems.includes(id);
+  }
+
+  grantItem(id: string) {
+    if (!this.ownsItem(id)) {
+      this.data.ownedItems.push(id);
+      this.save();
+      this.emit();
+    }
+  }
+
+  buyItem(id: string): boolean {
+    const item = ITEMS.find((i) => i.id === id);
+    if (!item || this.ownsItem(id)) return false;
+    if (!this.spend(item.price, item.currency)) return false;
+    this.grantItem(id);
+    return true;
+  }
+
+  equip(slot: string, itemId: string) {
+    if (!this.ownsItem(itemId)) return;
+    this.data.equipped[slot] = itemId;
+    if (slot === "color") {
+      const item = ITEMS.find((i) => i.id === itemId);
+      if (item?.colorHex !== undefined) this.data.carColor = item.colorHex;
+    }
+    this.save();
+    this.emit();
+  }
+
+  // ---------- Regiones / jefes ----------
+  isRegionUnlocked(id: RegionId): boolean {
+    return this.data.unlockedRegions.includes(id);
+  }
+
+  unlockRegion(id: RegionId) {
+    if (!this.isRegionUnlocked(id)) {
+      this.data.unlockedRegions.push(id);
+      this.save();
+      this.emit();
+    }
+  }
+
+  defeatBoss(region: RegionId) {
+    if (!this.data.defeatedBosses.includes(region)) {
+      this.data.defeatedBosses.push(region);
+      this.save();
+      this.emit();
+    }
+  }
+
+  isBossDefeated(region: RegionId): boolean {
+    return this.data.defeatedBosses.includes(region);
+  }
+
+  // ---------- Misiones ----------
+  getMissionProgress(id: string): MissionProgress {
+    if (!this.data.missions[id]) {
+      const def = MISSIONS.find((m) => m.id === id);
+      this.data.missions[id] = {
+        missionId: id,
+        progress: def ? def.objectives.map(() => 0) : [],
+        completed: false,
+      };
+    }
+    return this.data.missions[id];
+  }
+
+  isMissionAvailable(def: MissionDef): boolean {
+    if (def.hidden && !this.data.discoveredSecrets[def.id]) return false;
+    if (def.requires) {
+      for (const r of def.requires) {
+        if (!this.getMissionProgress(r).completed) return false;
+      }
+    }
+    return true;
+  }
+
+  progressMission(missionId: string, objectiveIndex: number, amount = 1) {
+    const def = MISSIONS.find((m) => m.id === missionId);
+    if (!def) return;
+    const prog = this.getMissionProgress(missionId);
+    if (prog.completed) return;
+    prog.progress[objectiveIndex] = Math.min(
+      def.objectives[objectiveIndex].count,
+      (prog.progress[objectiveIndex] ?? 0) + amount
+    );
+    const allDone = def.objectives.every((obj, i) => prog.progress[i] >= obj.count);
+    if (allDone) {
+      prog.completed = true;
+      this.addCurrency(def.rewardMonedas, def.rewardDiamantes);
+      this.addXp(def.rewardXp);
+    }
+    this.save();
+    this.emit();
+  }
+
+  // progreso automatico basado en eventos de tipo (usado por sistemas de mundo/partido)
+  notifyEvent(type: string, target: string, amount = 1) {
+    for (const def of MISSIONS) {
+      const prog = this.getMissionProgress(def.id);
+      if (prog.completed) continue;
+      if (!this.isMissionAvailable(def)) continue;
+      def.objectives.forEach((obj, i) => {
+        if (obj.type !== type) return;
+        if (obj.target !== target && obj.target !== "any") return;
+        this.progressMission(def.id, i, amount);
+      });
+    }
+  }
+
+  // ---------- Cofres / mascotas / secretos ----------
+  collectChest(id: string) {
+    if (this.data.chests.collected[id]) return false;
+    this.data.chests.collected[id] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  collectPetSpawn(id: string) {
+    if (this.data.petsCollected[id]) return false;
+    this.data.petsCollected[id] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  addPet(pet: OwnedPet) {
+    this.data.pets.push(pet);
+    if (!this.data.activePetUid) this.data.activePetUid = pet.uid;
+    this.save();
+    this.emit();
+  }
+
+  setActivePet(uid: string | null) {
+    this.data.activePetUid = uid;
+    this.save();
+    this.emit();
+  }
+
+  getActivePet(): OwnedPet | undefined {
+    return this.data.pets.find((p) => p.uid === this.data.activePetUid);
+  }
+
+  discoverSecret(id: string) {
+    if (this.data.discoveredSecrets[id]) return false;
+    this.data.discoveredSecrets[id] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  recordGoal() {
+    this.data.goalsScored += 1;
+    this.notifyEvent("marcarGoles", "any", 1);
+    this.save();
+    this.emit();
+  }
+
+  recordMatchWin(arenaId: string) {
+    this.data.matchesWon += 1;
+    this.notifyEvent("ganarPartido", arenaId, 1);
+    this.notifyEvent("ganarPartido", "any", 1);
+    this.save();
+    this.emit();
+  }
+}

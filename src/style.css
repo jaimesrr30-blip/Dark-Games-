@@ -335,6 +335,20 @@ body {
   pointer-events: auto;
 }
 
+#control-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 #toast-container {
   position: absolute;
   top: 90px;
@@ -570,6 +584,123 @@ body {
   opacity: 0.55;
 }
 
+/* ---------- Tarjetas de selección (estilo "elegir mascota") ---------- */
+.pick-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 30px;
+}
+.pick-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, #35435f, #29354a);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.15s ease;
+  text-align: left;
+}
+.pick-card:hover:not(.locked) {
+  transform: translateY(-2px);
+}
+.pick-card.selected {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, #5fce6b, #3fa84f);
+  border-color: #8bf49a;
+}
+.pick-card.locked {
+  cursor: not-allowed;
+  filter: grayscale(0.85) brightness(0.6);
+}
+.pick-card .pick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.pick-card .pick-info {
+  flex: 1;
+  min-width: 0;
+}
+.pick-card .pick-name {
+  font-weight: 800;
+  font-size: 13px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.pick-card .pick-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
+}
+.pick-card .pick-bar-track {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  margin-top: 5px;
+  overflow: hidden;
+}
+.pick-card .pick-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bf49a);
+  border-radius: 4px;
+}
+.pick-card .pick-lock {
+  font-size: 18px;
+}
+
+.select-arrow {
+  position: absolute;
+  width: 22px;
+  height: 20px;
+  pointer-events: none;
+  transition: left 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+  opacity: 0;
+  z-index: 5;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.select-arrow.show {
+  opacity: 1;
+  animation: arrow-bounce 0.9s ease-in-out infinite;
+}
+.select-arrow svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+@keyframes arrow-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+/* ---------- Mapa de Etapas ---------- */
+.stage-card .pick-icon {
+  color: #fff;
+  font-weight: 900;
+  font-size: 15px;
+}
+.stage-card .pick-req {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 3px;
+}
+.stage-card .pick-req.ok { color: #b6ffc2; }
+.stage-card.defeated { filter: none; }
+.stage-card.defeated .pick-icon { background: #ffd76b; }
+
 /* ---------- Garaje ---------- */
 #garage-canvas-wrap {
   width: 100%;
@@ -686,9 +817,35 @@ body {
   min-width: 54px;
   text-align: center;
 }
+
+#match-stats-bar {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 18px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+#match-stats-bar b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+#match-stats-bar .divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+}
+
 #boost-bar-wrap {
   position: absolute;
-  bottom: 20px;
+  bottom: 46px;
   left: 50%;
   transform: translateX(-50%);
   width: 220px;
@@ -703,6 +860,17 @@ body {
   background: linear-gradient(90deg, var(--accent2), #ffe08a);
   width: 100%;
   transition: width 0.1s linear;
+}
+#match-control-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  text-transform: uppercase;
 }
 #match-end-screen {
   position: absolute;
@@ -770,6 +938,26 @@ body {
   margin-bottom: 20px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+#boss-intro-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #ff4b4b, #7a0d0d);
+  border: 3px solid #ffb3b3;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.5);
+  margin-bottom: 6px;
+  animation: boss-pulse 1.4s ease-in-out infinite;
+}
+@keyframes boss-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+#boss-intro-requirements {
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 380px;
+  line-height: 1.5;
 }
 
 .hidden {

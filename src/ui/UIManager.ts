@@ -1,16 +1,16 @@
-import * as THREE from "three";
 import { UI_TEMPLATE } from "./template";
-import { GarageScene } from "./GarageScene";
+import { GaragePreview2D } from "./GaragePreview2D";
 import type { GameState } from "../state/GameState";
 import { xpForLevel } from "../state/GameState";
 import { RARITIES, type Rarity } from "../data/rarity";
 import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
 import { MISSIONS, type MissionType } from "../data/missions";
-import { REGIONS, type RegionDef } from "../data/regions";
+import { STAGES, STAGE_ORDER, type StageId } from "../data/stages";
 import { NPCS } from "../data/npcs";
-import { CHESTS, PET_SPAWNS, ARENAS } from "../data/spawns";
+import { CHESTS, PET_SPAWNS } from "../data/spawns";
 import { PET_ARCHETYPES } from "../data/pets";
-import { visualConfigFromState } from "../entities/PlayerController";
+import { visualFromState } from "../entities/carVisual";
+import type { Stage2D } from "../stage/Stage2D";
 
 function qs<T extends HTMLElement>(sel: string): T {
   const el = document.querySelector(sel) as T | null;
@@ -20,7 +20,7 @@ function qs<T extends HTMLElement>(sel: string): T {
 
 const SLOT_TABS: { slot: ItemSlot; label: string }[] = [
   { slot: "color", label: "Color" },
-  { slot: "rueda", label: "Ruedas" },
+  { slot: "rueda", label: "Borde" },
   { slot: "turbo", label: "Turbo" },
   { slot: "explosionGol", label: "Gol" },
   { slot: "estela", label: "Estela" },
@@ -32,7 +32,7 @@ const SLOT_TABS: { slot: ItemSlot; label: string }[] = [
 export class UIManager {
   root: HTMLElement;
   gs: GameState;
-  garageScene: GarageScene | null = null;
+  garagePreview: GaragePreview2D | null = null;
   private currentMissionTab: MissionType = "principal";
   private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" = "cosmeticos";
   private currentGarageSlot: ItemSlot = "color";
@@ -51,13 +51,12 @@ export class UIManager {
 
   private wireStaticEvents() {
     document.querySelectorAll<HTMLElement>("[data-close]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        qs(`#${btn.dataset.close}`).classList.remove("show");
-      });
+      btn.addEventListener("click", () => qs(`#${btn.dataset.close}`).classList.remove("show"));
     });
     qs("#btn-open-missions").addEventListener("click", () => this.openMissionsModal());
     qs("#btn-open-inventory").addEventListener("click", () => this.openInventoryModal());
     qs("#btn-open-garage").addEventListener("click", () => this.openGarageModal());
+    qs("#btn-open-map").addEventListener("click", () => this.openMapModal());
 
     document.querySelectorAll<HTMLElement>("[data-mtab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -109,6 +108,21 @@ export class UIManager {
       menu.classList.add("hide");
       onContinue();
     };
+  }
+
+  // ---------- Selector con flechita ----------
+  private positionArrow(arrowEl: HTMLElement, cardEl: HTMLElement | null, containerEl: HTMLElement) {
+    if (!cardEl) {
+      arrowEl.classList.remove("show");
+      return;
+    }
+    const containerRect = containerEl.getBoundingClientRect();
+    const cardRect = cardEl.getBoundingClientRect();
+    const left = cardRect.left - containerRect.left + cardRect.width / 2 - 11;
+    const top = cardRect.top - containerRect.top - 22;
+    arrowEl.style.left = `${left}px`;
+    arrowEl.style.top = `${top}px`;
+    arrowEl.classList.add("show");
   }
 
   // ---------- HUD ----------
@@ -172,8 +186,8 @@ export class UIManager {
     setTimeout(() => el.remove(), 3200);
   }
 
-  // ---------- Minimapa ----------
-  renderMinimap(playerPos: THREE.Vector3, region: RegionDef, extra: { inMatch: boolean }) {
+  // ---------- Minimapa (radar de la etapa actual) ----------
+  renderMinimap(playerX: number, playerY: number, stage: Stage2D, inMatch: boolean) {
     const ctx = this.minimapCtx;
     const size = 300;
     ctx.clearRect(0, 0, size, size);
@@ -181,50 +195,45 @@ export class UIManager {
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
     ctx.fill();
-    qs("#minimap-region-label").textContent = extra.inMatch ? "En partido" : region.name;
-    if (extra.inMatch) return;
+    qs("#minimap-region-label").textContent = inMatch ? "En partido" : stage.def.name;
+    if (inMatch) return;
 
-    const scale = 0.16;
+    const b = stage.bounds;
+    const scale = Math.min((size - 20) / (b.maxX - b.minX), (size - 20) / (b.maxY - b.minY));
     const cx = size / 2;
     const cy = size / 2;
+    const toMap = (x: number, y: number): [number, number] => [cx + x * scale, cy + y * scale];
 
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, size / 2 - 2, 0, Math.PI * 2);
     ctx.clip();
 
-    for (const rid of Object.keys(REGIONS) as (keyof typeof REGIONS)[]) {
-      const r = REGIONS[rid];
-      const rx = cx + (r.center[0] - playerPos.x) * scale;
-      const ry = cy + (r.center[1] - playerPos.z) * scale;
-      ctx.fillStyle = `#${r.groundColor.toString(16).padStart(6, "0")}`;
-      ctx.beginPath();
-      ctx.arc(rx, ry, r.radius * scale, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.strokeStyle = stage.def.accentColor;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 2;
+    const [rx0, ry0] = toMap(b.minX, b.minY);
+    ctx.strokeRect(rx0, ry0, (b.maxX - b.minX) * scale, (b.maxY - b.minY) * scale);
+    ctx.globalAlpha = 1;
 
-    ctx.fillStyle = "#ffd76633";
-    for (const c of CHESTS) {
+    for (const c of CHESTS.filter((c) => c.stage === stage.def.id)) {
       if (this.gs.data.chests.collected[c.id]) continue;
-      const px = cx + (c.pos[0] - playerPos.x) * scale;
-      const py = cy + (c.pos[1] - playerPos.z) * scale;
+      const [px, py] = toMap(c.pos[0], c.pos[1]);
       ctx.fillStyle = "#ffcc33";
       ctx.beginPath();
       ctx.arc(px, py, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    for (const p of PET_SPAWNS) {
+    for (const p of PET_SPAWNS.filter((p) => p.stage === stage.def.id)) {
       if (this.gs.data.petsCollected[p.id]) continue;
-      const px = cx + (p.pos[0] - playerPos.x) * scale;
-      const py = cy + (p.pos[1] - playerPos.z) * scale;
+      const [px, py] = toMap(p.pos[0], p.pos[1]);
       ctx.fillStyle = "#99ccff";
       ctx.beginPath();
       ctx.arc(px, py, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    for (const npc of NPCS) {
-      const px = cx + (npc.pos[0] - playerPos.x) * scale;
-      const py = cy + (npc.pos[1] - playerPos.z) * scale;
+    for (const npc of NPCS.filter((n) => n.stage === stage.def.id)) {
+      const [px, py] = toMap(npc.pos[0], npc.pos[1]);
       ctx.fillStyle = "#ffe066";
       ctx.beginPath();
       ctx.moveTo(px, py - 4);
@@ -232,17 +241,23 @@ export class UIManager {
       ctx.lineTo(px - 4, py + 3);
       ctx.fill();
     }
-    for (const a of ARENAS) {
-      const px = cx + (a.worldPos[0] - playerPos.x) * scale;
-      const py = cy + (a.worldPos[1] - playerPos.z) * scale;
-      ctx.strokeStyle = a.isBossArena ? "#ff3b3b" : "#66ccff";
+    if (stage.def.id !== "hub") {
+      const [gx, gy] = toMap(stage.bossGatePos[0], stage.bossGatePos[1]);
+      ctx.strokeStyle = "#ff3b3b";
       ctx.lineWidth = 2;
-      ctx.strokeRect(px - 4, py - 4, 8, 8);
+      ctx.strokeRect(gx - 5, gy - 5, 10, 10);
     }
+    const [tx, ty] = toMap(stage.trainingFieldPos[0], stage.trainingFieldPos[1]);
+    ctx.strokeStyle = "#66ccff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(tx, ty, 5, 0, Math.PI * 2);
+    ctx.stroke();
 
+    const [px, py] = toMap(playerX, playerY);
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -275,6 +290,56 @@ export class UIManager {
     qs("#dialogue-box").classList.remove("show");
   }
 
+  // ---------- Mapa de etapas ----------
+  openMapModal() {
+    qs("#modal-map").classList.add("show");
+    this.renderMapGrid();
+  }
+
+  private renderMapGrid() {
+    const grid = qs("#map-grid");
+    const arrow = qs<HTMLElement>("#arrow-map");
+    grid.querySelectorAll(".pick-card").forEach((el) => el.remove());
+
+    let currentCard: HTMLElement | null = null;
+    for (const id of STAGE_ORDER) {
+      const def = STAGES[id];
+      const unlocked = this.gs.isStageUnlocked(id);
+      const defeated = this.gs.isBossDefeated(id);
+      const isCurrent = this.gs.data.currentStage === id;
+      const card = document.createElement("button");
+      card.className = `pick-card stage-card interactive ${!unlocked ? "locked" : ""} ${isCurrent ? "selected" : ""} ${defeated ? "defeated" : ""}`;
+      const gate = id === "hub" ? null : this.gs.stageGateStatus(id);
+      let reqHtml = "";
+      if (id === "hub") reqHtml = `<div class="pick-req ok">Plaza inicial</div>`;
+      else if (defeated) reqHtml = `<div class="pick-req ok">Jefe derrotado ✓</div>`;
+      else if (unlocked && gate) {
+        reqHtml = `<div class="pick-req ${gate.missionsOk ? "ok" : ""}">Misiones ${gate.completed}/${gate.required}</div>
+          <div class="pick-req ${gate.coinsOk ? "ok" : ""}">Monedas ${Math.floor(this.gs.data.monedas)}/${gate.requiredCoins}</div>`;
+      } else {
+        reqHtml = `<div class="pick-req">Bloqueado</div>`;
+      }
+      card.innerHTML = `
+        <span class="pick-icon" style="background:${def.accentColor};">${unlocked ? "" : "🔒"}</span>
+        <span class="pick-info">
+          <span class="pick-name">${def.name}</span>
+          <span class="pick-sub">${def.bossName || "Zona inicial"}</span>
+          ${reqHtml}
+        </span>`;
+      if (unlocked) {
+        card.addEventListener("click", () => {
+          qs("#modal-map").classList.remove("show");
+          this.onTravelToStage?.(id);
+        });
+      }
+      grid.appendChild(card);
+      if (isCurrent) currentCard = card;
+    }
+    requestAnimationFrame(() => this.positionArrow(arrow, currentCard, grid));
+  }
+
+  onTravelToStage: ((id: StageId) => void) | null = null;
+
   // ---------- Misiones ----------
   openMissionsModal() {
     qs("#modal-missions").classList.add("show");
@@ -294,7 +359,7 @@ export class UIManager {
         const isActive = this.gs.data.activeMissionId === m.id;
         return `
         <div class="mission-card ${prog.completed ? "completed" : ""}" data-mission="${m.id}">
-          <div class="mtype">${m.type} · ${REGIONS[m.region].name}</div>
+          <div class="mtype">${m.type} · ${STAGES[m.stage].name}</div>
           <div style="font-weight:800;margin:2px 0;">${m.title}</div>
           <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">${m.description}</div>
           <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
@@ -327,32 +392,33 @@ export class UIManager {
     const list = qs("#inventory-list");
     if (this.currentInventoryTab === "mascotas") {
       if (this.gs.data.pets.length === 0) {
-        list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">Aún no tienes mascotas. ¡Explora el mundo para encontrarlas!</div>`;
+        list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">Aún no tienes mascotas. ¡Explora las etapas para encontrarlas!</div>`;
         return;
       }
-      list.innerHTML = this.gs.data.pets
-        .map((p) => {
-          const arche = PET_ARCHETYPES.find((a) => a.id === p.archetypeId);
-          const active = this.gs.data.activePetUid === p.uid;
-          return `
-          <div class="item-card">
-            <div class="item-swatch" style="background:${RARITIES[p.rarity].color};"></div>
-            <div class="item-info">
-              <div class="item-name">${arche?.name ?? p.archetypeId} <span class="rarity-tag r-${p.rarity}">${RARITIES[p.rarity].label}</span></div>
-              <div class="item-desc">${arche?.description ?? ""}</div>
-            </div>
-            <div class="item-actions">
-              <button class="btn-arrow small interactive" data-pet="${p.uid}">${active ? "Activa ✓" : "Usar"}</button>
-            </div>
-          </div>`;
-        })
-        .join("");
-      list.querySelectorAll<HTMLElement>("[data-pet]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          this.gs.setActivePet(btn.dataset.pet!);
+      list.innerHTML = `<div class="pick-grid" id="pet-pick-grid"><div class="select-arrow" id="arrow-pets"><svg viewBox="0 0 22 20"><polygon points="11,20 0,0 22,0" fill="#ff3b3b" stroke="#fff" stroke-width="1.5"/></svg></div></div>`;
+      const grid = qs("#pet-pick-grid");
+      const arrow = qs<HTMLElement>("#arrow-pets");
+      let activeCard: HTMLElement | null = null;
+      for (const p of this.gs.data.pets) {
+        const arche = PET_ARCHETYPES.find((a) => a.id === p.archetypeId);
+        const active = this.gs.data.activePetUid === p.uid;
+        const card = document.createElement("button");
+        card.className = `pick-card interactive ${active ? "selected" : ""}`;
+        card.innerHTML = `
+          <span class="pick-icon" style="background:${RARITIES[p.rarity].color};">🐾</span>
+          <span class="pick-info">
+            <span class="pick-name">${arche?.name ?? p.archetypeId}</span>
+            <span class="pick-sub"><span class="rarity-tag r-${p.rarity}">${RARITIES[p.rarity].label}</span></span>
+            <span class="pick-sub">${arche?.description ?? ""}</span>
+          </span>`;
+        card.addEventListener("click", () => {
+          this.gs.setActivePet(p.uid);
           this.renderInventoryList();
         });
-      });
+        grid.appendChild(card);
+        if (active) activeCard = card;
+      }
+      requestAnimationFrame(() => this.positionArrow(arrow, activeCard, grid));
       return;
     }
 
@@ -367,7 +433,7 @@ export class UIManager {
         const equipped = this.gs.data.equipped[i.slot] === i.id;
         return `
         <div class="item-card">
-          <div class="item-swatch" style="background:${i.colorHex !== undefined ? "#" + i.colorHex.toString(16).padStart(6, "0") : "#333"};"></div>
+          <div class="item-swatch" style="background:${i.colorHex ?? "#333"};"></div>
           <div class="item-info">
             <div class="item-name">${i.name} <span class="rarity-tag r-${i.rarity}">${RARITIES[i.rarity].label}</span></div>
             <div class="item-desc">${i.description}</div>
@@ -390,10 +456,10 @@ export class UIManager {
   // ---------- Garaje ----------
   openGarageModal() {
     qs("#modal-garage").classList.add("show");
-    if (!this.garageScene) {
-      this.garageScene = new GarageScene(qs<HTMLCanvasElement>("#garage-canvas"));
+    if (!this.garagePreview) {
+      this.garagePreview = new GaragePreview2D(qs<HTMLCanvasElement>("#garage-canvas"));
     }
-    this.garageScene.setCar(visualConfigFromState(this.gs));
+    this.garagePreview.setCar(visualFromState(this.gs));
     this.renderGarageSlotList();
   }
 
@@ -402,30 +468,23 @@ export class UIManager {
   }
 
   renderGarageFrame(dt: number) {
-    this.garageScene?.render(dt);
+    this.garagePreview?.render(dt);
   }
 
   private renderGarageSlotList() {
-    const list = qs("#garage-slot-list");
+    const grid = qs("#garage-slot-list");
+    const arrow = qs<HTMLElement>("#arrow-garage");
+    grid.querySelectorAll(".pick-card").forEach((el) => el.remove());
     const items = itemsBySlot(this.currentGarageSlot);
-    list.innerHTML = `<div class="slot-grid">${items
-      .map((i) => {
-        const owned = this.gs.ownsItem(i.id);
-        const equipped = this.gs.data.equipped[i.slot] === i.id;
-        const bg = i.colorHex !== undefined ? "#" + i.colorHex.toString(16).padStart(6, "0") : RARITIES[i.rarity].color;
-        return `<button class="swatch-btn interactive ${owned ? "owned" : ""} ${equipped ? "equipped" : ""}" style="background:${bg};" data-item="${i.id}" title="${i.name}"></button>`;
-      })
-      .join("")}</div>
-      <div id="garage-item-detail" style="padding:10px 4px;color:var(--text-dim);font-size:13px;"></div>`;
-
     const detail = qs("#garage-item-detail");
+
     const showDetail = (item: (typeof items)[number]) => {
       const owned = this.gs.ownsItem(item.id);
       detail.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;">
           <div>
             <div style="font-weight:800;color:var(--text);">${item.name} <span class="rarity-tag r-${item.rarity}">${RARITIES[item.rarity].label}</span></div>
-            <div>${item.description}</div>
+            <div style="color:var(--text-dim);font-size:13px;">${item.description}</div>
           </div>
           <div>
             ${
@@ -438,7 +497,7 @@ export class UIManager {
       const equipBtn = document.getElementById("btn-equip-current");
       equipBtn?.addEventListener("click", () => {
         this.gs.equip(item.slot, item.id);
-        this.garageScene?.setCar(visualConfigFromState(this.gs));
+        this.garagePreview?.setCar(visualFromState(this.gs));
         this.onEquipChange?.();
         this.renderGarageSlotList();
       });
@@ -446,7 +505,7 @@ export class UIManager {
       buyBtn?.addEventListener("click", () => {
         if (this.gs.buyItem(item.id)) {
           this.gs.equip(item.slot, item.id);
-          this.garageScene?.setCar(visualConfigFromState(this.gs));
+          this.garagePreview?.setCar(visualFromState(this.gs));
           this.onEquipChange?.();
           this.renderGarageSlotList();
         } else {
@@ -454,14 +513,34 @@ export class UIManager {
         }
       });
     };
-    if (items.length) showDetail(items[0]);
 
-    list.querySelectorAll<HTMLElement>("[data-item]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const item = items.find((i) => i.id === btn.dataset.item)!;
-        showDetail(item);
+    let equippedCard: HTMLElement | null = null;
+    for (const item of items) {
+      const owned = this.gs.ownsItem(item.id);
+      const equipped = this.gs.data.equipped[item.slot] === item.id;
+      const card = document.createElement("button");
+      card.className = `pick-card interactive ${!owned ? "locked" : ""} ${equipped ? "selected" : ""}`;
+      card.innerHTML = `
+        <span class="pick-icon" style="background:${item.colorHex ?? RARITIES[item.rarity].color};">${owned ? "" : "🔒"}</span>
+        <span class="pick-info">
+          <span class="pick-name">${item.name}</span>
+          <span class="pick-sub"><span class="rarity-tag r-${item.rarity}">${RARITIES[item.rarity].label}</span></span>
+        </span>`;
+      card.addEventListener("click", () => {
+        if (owned) {
+          this.gs.equip(item.slot, item.id);
+          this.garagePreview?.setCar(visualFromState(this.gs));
+          this.onEquipChange?.();
+          this.renderGarageSlotList();
+        } else {
+          showDetail(item);
+        }
       });
-    });
+      grid.appendChild(card);
+      if (equipped) equippedCard = card;
+    }
+    if (items.length) showDetail(items[0]);
+    requestAnimationFrame(() => this.positionArrow(arrow, equippedCard, grid));
   }
 
   // ---------- Tienda ----------
@@ -483,7 +562,7 @@ export class UIManager {
         const afford = this.gs.canAfford(i.price, i.currency);
         return `
         <div class="item-card">
-          <div class="item-swatch" style="background:${i.colorHex !== undefined ? "#" + i.colorHex.toString(16).padStart(6, "0") : "#333"};"></div>
+          <div class="item-swatch" style="background:${i.colorHex ?? "#333"};"></div>
           <div class="item-info">
             <div class="item-name">${i.name} <span class="rarity-tag r-${i.rarity}">${RARITIES[i.rarity].label}</span></div>
             <div class="item-desc">${i.description}</div>
@@ -512,20 +591,24 @@ export class UIManager {
     qs("#hud-bottom-left").classList.add("hidden");
     qs("#hud-bottom-right").classList.add("hidden");
     qs("#hud-menu-buttons").classList.add("hidden");
+    qs("#control-hint").classList.add("hidden");
   }
   hideMatchHUD() {
     qs("#match-hud").classList.remove("show");
     qs("#hud-bottom-left").classList.remove("hidden");
     qs("#hud-bottom-right").classList.remove("hidden");
     qs("#hud-menu-buttons").classList.remove("hidden");
+    qs("#control-hint").classList.remove("hidden");
   }
-  updateMatchHUD(scoreA: number, scoreB: number, timeLeft: number, boostFuel: number) {
+  updateMatchHUD(scoreA: number, scoreB: number, timeLeft: number, boostFuel: number, touches: number) {
     qs("#score-a").textContent = String(scoreA);
     qs("#score-b").textContent = String(scoreB);
     const m = Math.max(0, Math.floor(timeLeft / 60));
     const s = Math.max(0, Math.floor(timeLeft % 60));
     qs("#match-timer").textContent = `${m}:${s.toString().padStart(2, "0")}`;
     qs<HTMLElement>("#boost-bar-fill").style.width = `${Math.max(0, boostFuel * 100)}%`;
+    qs("#match-touches").textContent = String(touches);
+    qs("#match-turbo-pct").textContent = `${Math.round(Math.max(0, boostFuel) * 100)}%`;
   }
 
   showMatchEnd(won: boolean, scoreA: number, scoreB: number, rewardsText: string, onContinue: () => void) {
@@ -542,11 +625,13 @@ export class UIManager {
     };
   }
 
-  showBossIntro(name: string, title: string, onStart: () => void) {
+  showBossIntro(stage: StageId, onStart: () => void) {
+    const def = STAGES[stage];
     const screen = qs("#boss-intro");
     screen.classList.add("show");
-    qs("#boss-intro-name").textContent = name;
-    qs("#boss-intro-title").textContent = title;
+    qs("#boss-intro-name").textContent = def.bossName;
+    qs("#boss-intro-title").textContent = def.bossTitle;
+    qs("#boss-intro-requirements").textContent = "Objetivo: marca 5 goles antes que tu rival en una arena laberíntica llena de monedas.";
     qs<HTMLButtonElement>("#btn-boss-start").onclick = () => {
       screen.classList.remove("show");
       onStart();
@@ -554,11 +639,13 @@ export class UIManager {
   }
 
   anyModalOpen(): boolean {
-    return Array.from(document.querySelectorAll(".modal-backdrop")).some((m) => m.classList.contains("show"))
-      || qs("#dialogue-box").classList.contains("show")
-      || qs("#match-end-screen").classList.contains("show")
-      || qs("#boss-intro").classList.contains("show")
-      || !qs("#main-menu").classList.contains("hide");
+    return (
+      Array.from(document.querySelectorAll(".modal-backdrop")).some((m) => m.classList.contains("show")) ||
+      qs("#dialogue-box").classList.contains("show") ||
+      qs("#match-end-screen").classList.contains("show") ||
+      qs("#boss-intro").classList.contains("show") ||
+      !qs("#main-menu").classList.contains("hide")
+    );
   }
 
   closeAllModals() {

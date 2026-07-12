@@ -1,77 +1,47 @@
-import * as THREE from "three";
 import "./style.css";
 import { GameState } from "./state/GameState";
 import { UIManager } from "./ui/UIManager";
-import { World } from "./world/World";
 import { Input } from "./core/Input";
-import { PlayerController } from "./entities/PlayerController";
-import { NpcInstance } from "./entities/NPC";
+import { Camera2D } from "./core/Camera2D";
+import { CarBody2D } from "./entities/Car2D";
+import { visualFromState } from "./entities/carVisual";
+import { Npc2DInstance } from "./entities/Npc2D";
 import { NPCS } from "./data/npcs";
-import { ARENAS, PORTALS } from "./data/spawns";
 import { MISSIONS } from "./data/missions";
-import { MatchManager, bossNameFor } from "./match/MatchManager";
-import { REGIONS } from "./data/regions";
-import type { RegionId } from "./data/regions";
-
-const PORTAL_LOOKUP = new Map(PORTALS.map((p) => [p.id, p]));
+import { STAGES, type StageId } from "./data/stages";
+import { Stage2D } from "./stage/Stage2D";
+import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
+import { Match2D } from "./match2d/Match2D";
 
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const ctx = canvas.getContext("2d")!;
 
 const gs = new GameState();
 const uiRoot = document.getElementById("ui-root") as HTMLElement;
 const ui = new UIManager(uiRoot, gs);
+const input = new Input();
+const camera = new Camera2D();
 
-const input = new Input(canvas);
-const worldCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 900);
-const clock = new THREE.Clock(false);
-
-let world: World;
-let player: PlayerController;
-let npcInstances: NpcInstance[] = [];
-let match: MatchManager | null = null;
+let stage: Stage2D;
+let player: CarBody2D;
+let npcInstances: Npc2DInstance[] = [];
+let interactables: Interactable2D[] = [];
+let match: Match2D | null = null;
 let mode: "world" | "match" = "world";
-let lastRegionId: string | null = null;
-
-const SPAWN_POS: [number, number] = [0, 5];
 
 function resize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setSize(w, h);
-  worldCamera.aspect = w / h;
-  worldCamera.updateProjectionMatrix();
-  if (match) {
-    match.camera.aspect = w / h;
-    match.camera.updateProjectionMatrix();
-  }
+  canvas.width = w * Math.min(window.devicePixelRatio || 1, 2);
+  canvas.height = h * Math.min(window.devicePixelRatio || 1, 2);
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  camera.viewW = w;
+  camera.viewH = h;
 }
 window.addEventListener("resize", resize);
-
-function buildArenaMarkers() {
-  for (const a of ARENAS) {
-    const region = REGIONS[a.region];
-    const color = a.isBossArena ? 0xff3b3b : 0x66ccff;
-    const ringMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.1 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(9, 0.7, 10, 24), ringMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(a.worldPos[0], 7, a.worldPos[1]);
-    world.scene.add(ring);
-
-    const baseMat = new THREE.MeshStandardMaterial({ color: region.groundColorAlt, roughness: 0.6 });
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(11, 12, 2, 20), baseMat);
-    base.position.set(a.worldPos[0], 1, a.worldPos[1]);
-    base.receiveShadow = true;
-    world.scene.add(base);
-
-    const light = new THREE.PointLight(color, 1.4, 26);
-    light.position.set(a.worldPos[0], 8, a.worldPos[1]);
-    world.scene.add(light);
-  }
-}
 
 function npcHasContent(def: (typeof NPCS)[number]): boolean {
   if (!def.missionIds) return false;
@@ -83,28 +53,28 @@ function npcHasContent(def: (typeof NPCS)[number]): boolean {
   });
 }
 
-function talkToNpc(npc: NpcInstance) {
+function loadStage(id: StageId, pos?: [number, number] | null) {
+  stage = new Stage2D(id);
+  interactables = buildInteractables2D(id);
+  npcInstances = NPCS.filter((n) => n.stage === id).map((def) => new Npc2DInstance(def, def.pos[0], def.pos[1]));
+
+  if (!player) player = new CarBody2D(visualFromState(gs));
+  const spawn = pos ?? stage.spawnPoint;
+  player.setPosition(spawn[0], spawn[1]);
+  camera.snap(spawn[0], spawn[1]);
+  gs.setPlayerLocation(id, spawn);
+}
+
+function talkToNpc(npc: Npc2DInstance) {
   ui.openDialogue(npc.def.name, npc.def.dialogue, () => {
     gs.notifyEvent("hablarCon", npc.def.id, 1);
-    if (npc.def.shopId) {
-      ui.openShopModal(`Tienda de ${npc.def.name}`);
-    }
+    if (npc.def.shopId) ui.openShopModal(`Tienda de ${npc.def.name}`);
   });
 }
 
-function enterArena(arena: (typeof ARENAS)[number]) {
-  if (arena.isBossArena) {
-    const boss = bossNameFor(arena.region);
-    ui.showBossIntro(boss.name, boss.title, () => beginMatch(arena, "boss"));
-  } else {
-    beginMatch(arena, "normal");
-  }
-}
-
-function beginMatch(arena: (typeof ARENAS)[number], modeType: "normal" | "boss") {
-  match = new MatchManager(gs, input, modeType, modeType === "boss" ? arena.region : undefined, REGIONS[arena.region].arenaTheme);
-  match.camera.aspect = window.innerWidth / window.innerHeight;
-  match.camera.updateProjectionMatrix();
+function beginMatch(modeType: "normal" | "boss") {
+  match = new Match2D(gs, input, modeType, stage.def.id);
+  camera.snap(0, 0);
   mode = "match";
   ui.showMatchHUD();
 }
@@ -114,149 +84,155 @@ function endMatch() {
   const r = match.result;
   const rewardsText = r.won
     ? r.mode === "boss"
-      ? "+800 monedas · +25 diamantes · +400 XP · Nueva región desbloqueada"
-      : "+250 monedas · +5 diamantes · +150 XP"
+      ? "+900 monedas · +30 diamantes · +450 XP · ¡Siguiente etapa desbloqueada!"
+      : "+200 monedas · +4 diamantes · +120 XP"
     : "Sin recompensas esta vez. ¡Inténtalo de nuevo!";
   ui.hideMatchHUD();
   ui.showMatchEnd(r.won, r.scoreA, r.scoreB, rewardsText, () => {
-    match?.dispose();
     match = null;
     mode = "world";
   });
 }
 
 function findNearestInteraction(): { label: string; run: () => void } | null {
-  const p = player.car.position;
+  const p = player;
   let best: { dist: number; label: string; run: () => void } | null = null;
 
   for (const npc of npcInstances) {
-    const d = p.distanceTo(npc.worldPos);
-    if (d < 4.5 && (!best || d < best.dist)) {
+    const d = Math.hypot(p.x - npc.x, p.y - npc.y);
+    if (d < 55 && (!best || d < best.dist)) {
       best = { dist: d, label: `Hablar con ${npc.def.name}`, run: () => talkToNpc(npc) };
     }
   }
 
-  for (const it of world.interactables) {
+  for (const it of interactables) {
     if (!it.isAvailable(gs)) continue;
-    const pos = it.object3d.position;
-    const d = Math.hypot(p.x - pos.x, p.z - pos.z);
-    if (d < 4 && (!best || d < best.dist)) {
+    const d = Math.hypot(p.x - it.x, p.y - it.y);
+    if (d < 50 && (!best || d < best.dist)) {
       best = {
         dist: d,
         label: it.promptLabel,
         run: () => {
           const result = it.interact(gs);
-          if (result.type === "portal") {
-            const portalDef = PORTAL_LOOKUP.get(it.id);
-            if (portalDef) player.car.setPosition(portalDef.targetPos[0], portalDef.targetPos[1]);
-          }
           ui.toast(result.message, result.rarity);
         },
       };
     }
   }
 
-  for (const a of ARENAS) {
-    const d = Math.hypot(p.x - a.worldPos[0], p.z - a.worldPos[1]);
-    if (d < 13 && (!best || d < best.dist)) {
-      const prereq = REGIONS[a.region].requiresBossDefeated;
-      const locked = a.isBossArena && !!prereq && !gs.isBossDefeated(prereq);
+  const [tx, ty] = stage.trainingFieldPos;
+  const dTrain = Math.hypot(p.x - tx, p.y - ty);
+  if (dTrain < 60 && (!best || dTrain < best.dist)) {
+    best = { dist: dTrain, label: "Jugar partido de entrenamiento", run: () => beginMatch("normal") };
+  }
+
+  if (stage.def.id !== "hub") {
+    const [gx, gy] = stage.bossGatePos;
+    const dGate = Math.hypot(p.x - gx, p.y - gy);
+    if (dGate < 70 && (!best || dGate < best.dist)) {
+      const gate = gs.stageGateStatus(stage.def.id);
+      const locked = !gate.ready;
       best = {
-        dist: d,
-        label: locked ? `Bloqueado (derrota antes a ${REGIONS[prereq as RegionId].bossName})` : `Entrar a ${a.name}`,
+        dist: dGate,
+        label: locked ? `Puerta bloqueada (misiones ${gate.completed}/${gate.required}, monedas ${Math.floor(gs.data.monedas)}/${gate.requiredCoins})` : `Desafiar a ${stage.def.bossName}`,
         run: () => {
           if (locked) {
-            ui.toast("Aún no puedes entrar aquí.");
+            ui.toast("Aún no cumples los requisitos para entrar.");
             return;
           }
-          enterArena(a);
+          ui.showBossIntro(stage.def.id, () => beginMatch("boss"));
         },
       };
     }
   }
 
-  return best ? { label: best.label, run: best.run } : null;
+  return best;
 }
 
-function startGame() {
-  world = new World(gs);
-  player = new PlayerController(gs, worldCamera, input);
-  player.car.setPosition(SPAWN_POS[0], SPAWN_POS[1]);
-  world.scene.add(player.car.group);
+let saveTimer = 0;
 
-  npcInstances = NPCS.map((def) => {
-    const inst = new NpcInstance(def, def.pos[0], def.pos[1]);
-    world.scene.add(inst.group);
-    return inst;
-  });
-
-  buildArenaMarkers();
-  ui.hideLoading();
-  ui.onEquipChange = () => player.refreshVisual(gs);
-  resize();
-  clock.start();
-  requestAnimationFrame(loop);
-
-  if (import.meta.env.DEV) {
-    (window as unknown as { __game: unknown }).__game = { gs, world, player, ui, get match() { return match; } };
-  }
-}
-
-function loop() {
-  const dt = Math.min(0.05, clock.getDelta());
+function loop(tsMs: number) {
+  const dt = Math.min(0.05, (loop.last ? (tsMs - loop.last) / 1000 : 0.016));
+  loop.last = tsMs;
 
   if (mode === "world") {
     const modalOpen = ui.anyModalOpen();
     if (!modalOpen) {
-      player.update(dt, gs);
+      player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, stage.bounds);
     }
-    world.update(dt, player.car.position);
-    for (const npc of npcInstances) npc.update(dt, npcHasContent(npc.def));
+    stage.update(dt);
 
-    if (world.currentRegion.id !== lastRegionId) {
-      lastRegionId = world.currentRegion.id;
-      if (!gs.isRegionUnlocked(world.currentRegion.id)) {
-        gs.unlockRegion(world.currentRegion.id);
-        ui.toast(`Nueva región descubierta: ${world.currentRegion.name}`);
-      }
-    }
+    camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height });
+
+    stage.drawBackground(ctx, camera);
+    stage.drawProps(ctx, camera);
+    stage.drawTrainingField(ctx, camera);
+    stage.drawBossGate(ctx, camera, gs.stageGateStatus(stage.def.id).ready, gs.isBossDefeated(stage.def.id));
+    stage.drawBounds(ctx, camera);
+
+    for (const it of interactables) it.draw(ctx, camera, performance.now() / 1000);
+    for (const npc of npcInstances) npc.draw(ctx, camera, dt, npcHasContent(npc.def));
+    player.draw(ctx, camera, player.speed > 20);
+
+    ui.renderMinimap(player.x, player.y, stage, false);
 
     if (!modalOpen) {
       const nearest = findNearestInteraction();
       ui.setInteractPrompt(nearest?.label ?? null);
-      if (nearest && input.wasPressed("KeyE")) {
-        nearest.run();
-      }
+      if (nearest && input.wasPressed("KeyE")) nearest.run();
     } else {
       ui.setInteractPrompt(null);
     }
 
     if (ui.isGarageOpen()) ui.renderGarageFrame(dt);
-    ui.renderMinimap(player.car.position, world.currentRegion, { inMatch: false });
 
-    renderer.render(world.scene, worldCamera);
+    saveTimer += dt;
+    if (saveTimer > 1) {
+      saveTimer = 0;
+      gs.setPlayerLocation(stage.def.id, [player.x, player.y]);
+    }
   } else if (match) {
     match.update(dt);
-    ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.playerCar.car.boostFuel);
-    ui.renderMinimap(match.playerCar.car.position, world.currentRegion, { inMatch: true });
-    renderer.render(match.scene, match.camera);
-    if (match.finished) {
-      endMatch();
-    }
+    camera.follow(match.player.x, match.player.y, { w: match.width, h: match.height }, 0.1);
+    ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.boostFuel, match.touchCount);
+    ui.renderMinimap(0, 0, stage, true);
+    match.draw(ctx, camera);
+    if (match.finished) endMatch();
   }
 
   input.consumeFrame();
   requestAnimationFrame(loop);
 }
+loop.last = 0;
+
+function startGame() {
+  loadStage(gs.data.currentStage, gs.data.playerPos);
+  ui.onEquipChange = () => {
+    player.visual = visualFromState(gs);
+  };
+  ui.onTravelToStage = (id) => loadStage(id);
+  resize();
+  ui.hideLoading();
+  requestAnimationFrame(loop);
+
+  if (import.meta.env.DEV) {
+    (window as unknown as { __game: unknown }).__game = {
+      gs,
+      ui,
+      player,
+      stage: () => stage,
+      match: () => match,
+      forceBoss: () => beginMatch("boss"),
+    };
+  }
+}
 
 ui.hideLoading();
 ui.showMainMenu(
-  !!localStorage.getItem("openworld_carball_save_v1"),
+  !!localStorage.getItem("cubo_pilot_2d_save_v1"),
   () => {
     gs.resetSave();
     startGame();
   },
-  () => {
-    startGame();
-  }
+  () => startGame()
 );

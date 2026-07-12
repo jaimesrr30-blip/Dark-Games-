@@ -1,11 +1,12 @@
 import type { OwnedPet } from "../data/pets";
-import type { RegionId } from "../data/regions";
-import { MISSIONS, type MissionDef } from "../data/missions";
+import type { StageId } from "../data/stages";
+import { STAGES, nextStage } from "../data/stages";
+import { MISSIONS, stageGateMissions, type MissionDef } from "../data/missions";
 import { ITEMS } from "../data/items";
 
 export interface MissionProgress {
   missionId: string;
-  progress: number[]; // progreso por objetivo
+  progress: number[];
   completed: boolean;
 }
 
@@ -21,10 +22,10 @@ export interface SaveData {
   xp: number;
   level: number;
   ownedItems: string[];
-  equipped: Record<string, string>; // slot -> itemId
-  carColor: number;
-  unlockedRegions: RegionId[];
-  defeatedBosses: RegionId[];
+  equipped: Record<string, string>;
+  carColor: string;
+  unlockedStages: StageId[];
+  defeatedBosses: StageId[];
   missions: Record<string, MissionProgress>;
   activeMissionId: string | null;
   pets: OwnedPet[];
@@ -34,14 +35,15 @@ export interface SaveData {
   discoveredSecrets: Record<string, boolean>;
   goalsScored: number;
   matchesWon: number;
-  playTimeSec: number;
+  currentStage: StageId;
+  playerPos: [number, number] | null;
 }
 
-const SAVE_KEY = "openworld_carball_save_v1";
+const SAVE_KEY = "cubo_pilot_2d_save_v1";
 
 function defaultSave(): SaveData {
   return {
-    version: 1,
+    version: 2,
     playerName: "Piloto",
     monedas: 500,
     diamantes: 20,
@@ -59,8 +61,8 @@ function defaultSave(): SaveData {
       balon: "balon_clasico",
       titulo: "titulo_novato",
     },
-    carColor: 0xf2f2f2,
-    unlockedRegions: ["hub"],
+    carColor: "#f2f2f2",
+    unlockedStages: ["hub", "ciudad"],
     defeatedBosses: [],
     missions: {},
     activeMissionId: "m_intro",
@@ -71,7 +73,8 @@ function defaultSave(): SaveData {
     discoveredSecrets: {},
     goalsScored: 0,
     matchesWon: 0,
-    playTimeSec: 0,
+    currentStage: "hub",
+    playerPos: null,
   };
 }
 
@@ -190,29 +193,54 @@ export class GameState {
     this.emit();
   }
 
-  // ---------- Regiones / jefes ----------
-  isRegionUnlocked(id: RegionId): boolean {
-    return this.data.unlockedRegions.includes(id);
+  // ---------- Etapas / jefes ----------
+  isStageUnlocked(id: StageId): boolean {
+    return this.data.unlockedStages.includes(id);
   }
 
-  unlockRegion(id: RegionId) {
-    if (!this.isRegionUnlocked(id)) {
-      this.data.unlockedRegions.push(id);
+  unlockStage(id: StageId) {
+    if (!this.isStageUnlocked(id)) {
+      this.data.unlockedStages.push(id);
       this.save();
       this.emit();
     }
   }
 
-  defeatBoss(region: RegionId) {
-    if (!this.data.defeatedBosses.includes(region)) {
-      this.data.defeatedBosses.push(region);
+  defeatBoss(stage: StageId) {
+    if (!this.data.defeatedBosses.includes(stage)) {
+      this.data.defeatedBosses.push(stage);
+      const next = nextStage(stage);
+      if (next && !this.isStageUnlocked(next)) this.data.unlockedStages.push(next);
       this.save();
       this.emit();
     }
   }
 
-  isBossDefeated(region: RegionId): boolean {
-    return this.data.defeatedBosses.includes(region);
+  isBossDefeated(stage: StageId): boolean {
+    return this.data.defeatedBosses.includes(stage);
+  }
+
+  // progreso hacia desbloquear la puerta del jefe de una etapa (3 misiones + monedas)
+  stageGateStatus(stage: StageId) {
+    const def = STAGES[stage];
+    const gateMissions = stageGateMissions(stage);
+    const completed = gateMissions.filter((m) => this.getMissionProgress(m.id).completed).length;
+    const missionsOk = completed >= def.requiredMissions;
+    const coinsOk = this.data.monedas >= def.requiredCoins;
+    return {
+      completed,
+      required: def.requiredMissions,
+      requiredCoins: def.requiredCoins,
+      missionsOk,
+      coinsOk,
+      ready: missionsOk && coinsOk,
+    };
+  }
+
+  setPlayerLocation(stage: StageId, pos: [number, number]) {
+    this.data.currentStage = stage;
+    this.data.playerPos = pos;
+    this.save();
   }
 
   // ---------- Misiones ----------
@@ -257,7 +285,6 @@ export class GameState {
     this.emit();
   }
 
-  // progreso automatico basado en eventos de tipo (usado por sistemas de mundo/partido)
   notifyEvent(type: string, target: string, amount = 1) {
     for (const def of MISSIONS) {
       const prog = this.getMissionProgress(def.id);
@@ -320,9 +347,9 @@ export class GameState {
     this.emit();
   }
 
-  recordMatchWin(arenaId: string) {
+  recordMatchWin(fieldId: string) {
     this.data.matchesWon += 1;
-    this.notifyEvent("ganarPartido", arenaId, 1);
+    this.notifyEvent("ganarPartido", fieldId, 1);
     this.notifyEvent("ganarPartido", "any", 1);
     this.save();
     this.emit();

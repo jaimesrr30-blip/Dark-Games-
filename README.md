@@ -1,9 +1,9 @@
-# Piloto Cúbico: Mundo Abierto
+# Piloto Cúbico
 
-Prototipo jugable de un juego de mundo abierto que combina exploración libre con
-partidos de "fútbol con coches" (estilo Rocket League), progresión RPG,
-coleccionismo y un sistema de mascotas con poderes. Coches y personajes con
-estética low-poly / cúbica, construido en 3D con Three.js + TypeScript + Vite.
+Prototipo jugable en 2D: un coche cúbico recorre etapas temáticas resolviendo
+misiones, recogiendo mascotas de distintas rarezas y jugando partidos de
+"fútbol con coches" estilo Pong/Pacman contra jefes. Construido con
+TypeScript + Canvas 2D + Vite (sin motor 3D).
 
 ## Cómo ejecutarlo
 
@@ -23,73 +23,72 @@ npm run preview
 
 ## Controles
 
-- **W / S** o **flechas arriba/abajo**: acelerar / frenar-retroceder
-- **A / D** o **flechas izquierda/derecha**: girar
-- **Shift**: turbo (consume el medidor de boost)
-- **Espacio**: saltar (doble salto disponible)
-- **E**: interactuar (hablar con NPC, abrir cofres, recoger mascotas, entrar a
-  portales/estadios)
-- Botones en pantalla: **Misiones**, **Inventario**, **Garaje**
+- **WASD** o **flechas**: moverse en 8 direcciones
+- **Espacio**: turbo (consume el medidor de boost)
+- **E**: interactuar (hablar con NPC, abrir cofres, recoger mascotas, entrar
+  al campo de entrenamiento o a la puerta del jefe)
+- Botones en pantalla: **Mapa**, **Misiones**, **Inventario**, **Garaje**
 
 ## Qué incluye este prototipo
 
-- Mundo abierto único con 8 regiones temáticas + una plaza central (Hub),
-  cada una con su propio color de terreno, cielo, niebla, clima y props.
-- Ciclo de día/noche dinámico y clima por región (lluvia, nieve, arena, ceniza).
-- Coche con física arcade (aceleración, giro, turbo, salto, colisiones básicas).
-- NPCs cúbicos con diálogo y misiones (principales, secundarias, especiales y
-  ocultas), con seguimiento de objetivos en el HUD.
-- Cofres y mascotas coleccionables repartidos por el mapa, con **sistema de
-  rarezas de 9 niveles**: Común, Poco Común, Raro, Épico, Legendario, Dios,
-  Secreto, Divino y Prohibido.
+- **9 etapas** (Plaza Central + 8 zonas temáticas: ciudad futurista, desierto,
+  bosque mágico, volcán, reino helado, islas flotantes, laboratorio, reino
+  celestial), cada una un área 2D abierta y delimitada con su propia
+  ambientación y decoración (árboles, cactus, rocas, farolas, nubes...).
+- **Progresión por etapas**: cada etapa pide completar 3 misiones y una
+  cantidad de monedas (creciente por etapa) para desbloquear la puerta del
+  jefe; al derrotarlo se desbloquea la siguiente etapa. El viaje entre etapas
+  desbloqueadas se hace desde el **Mapa de Etapas**.
+- Coche y NPCs representados como cuadrados/cubos de colores, sin ruedas ni
+  detalle 3D, tal y como se pidió.
+- NPCs con diálogo y misiones (principales, secundarias y especiales), con
+  seguimiento de objetivos en el HUD.
+- Cofres y mascotas coleccionables por etapa, con **sistema de rarezas de 9
+  niveles**: Común, Poco Común, Raro, Épico, Legendario, Dios, Secreto,
+  Divino y Prohibido.
 - **Sistema de mascotas con poderes en partido**: cada mascota da un poder
   distinto (recarga de turbo, golpe más fuerte, efecto de curva en el balón,
-  salto más alto, escudo defensivo o imán de balón); cuanto mejor la rareza,
-  más fuerte el efecto.
-- Portales de viaje rápido (incluye uno secreto).
-- Partidos de fútbol con coches en estadios temáticos: balón y coches
-  flotantes, porterías elevadas, marcador, temporizador y un compañero/rivales
-  controlados por IA.
-- Un jefe único por región (coche especial, introducción cinematográfica
-  simplificada, música/tema propio del estadio) que se derrota jugando un
-  partido 1 contra 1; al vencerlo se registra el progreso de la historia.
+  escudo defensivo o imán de balón); cuanto mejor la rareza, más fuerte el
+  efecto.
+- **Partidos normales** ("campo de entrenamiento"): campo 2D con línea
+  central discontinua y porterías tipo corchete a los lados, balón flotante,
+  marcador, contador de toques y barra de turbo — inspirado directamente en
+  la referencia que se compartió.
+- **Partidos de jefe**: mismo objetivo de marcar goles, pero en una arena
+  mucho más grande tipo laberinto (paredes simétricas al estilo Pacman) con
+  monedas repartidas para recoger durante el partido.
 - Economía con monedas y diamantes, niveles/XP, tienda de cosméticos y
-  garaje con vista previa 3D giratoria del coche (arrastra para rotar).
-- Guardado de partida automático en `localStorage` (botón "Continuar").
+  garaje con vista previa 2D del coche.
+- Menús de selección con tarjetas y una flechita roja que rebota sobre el
+  elemento elegido (mascota activa, pieza equipada, etapa actual), en el
+  estilo del vídeo de referencia.
+- Guardado de partida automático en `localStorage` (botón "Continuar"),
+  incluida la etapa y posición donde te quedaste.
 
 ## Limitaciones conocidas / lo que NO incluye
 
 Esto es una **vertical slice** jugable, no un juego con cientos de horas de
-contenido como pediste en la idea original. Cosas que se simplificaron a
-propósito:
+contenido. Cosas que se simplificaron a propósito:
 
-- **Música**: no se incluye música con derechos de autor. No hay banda
-  sonora real por región; se puede añadir después con archivos de audio
-  propios.
-- **Modelos 3D**: personajes y coches son geometría low-poly/cúbica generada
-  por código (tal y como aceptaste), no modelos modelados a mano ni animados
-  con esqueletos.
+- **Música**: no se incluye música con derechos de autor. Se puede añadir
+  después con archivos de audio propios.
 - **Cantidad de contenido**: hay un puñado de misiones, cofres, mascotas y
-  NPCs por región (no cientos), pensado como base extensible mediante los
+  NPCs por etapa (no cientos), pensado como base extensible mediante los
   archivos de datos en `src/data/` (añadir más entradas es sencillo, no
   requiere tocar la lógica del juego).
-- **Partidos**: son 1v1 (jefes) o 2v2 (partidos normales) con físicas arcade
-  simplificadas, sin colisiones de coche-coche perfectamente realistas.
-- **Rendimiento**: se optimizó fusionando la geometría decorativa por región
-  y limitando las luces dinámicas para que corra fluido en un navegador con
-  aceleración por GPU real. (En este entorno de pruebas sandbox, sin GPU,
-  el renderizado es por software y por tanto más lento; en un navegador
-  normal debería ir a 60 fps sin problema.)
+- **Partidos**: son 1 contra 1, con física arcade simplificada (sin
+  colisiones de coche-coche perfectamente realistas).
 
 ## Estructura del proyecto
 
 ```
 src/
-  data/       -> configuración de rarezas, regiones, items, mascotas, misiones, NPCs, spawns
+  data/       -> rarezas, etapas, items, mascotas, misiones, NPCs, cofres/spawns
   state/      -> estado global del juego (economía, inventario, progreso, guardado)
-  world/      -> generación del mundo (terreno, cielo, clima, props, cofres, portales)
-  entities/   -> coche del jugador y NPCs
-  match/      -> partidos: balón, estadio, IA, marcador, jefes
-  ui/         -> HUD, menús, garaje 3D, tienda, diálogos
+  core/       -> entrada de teclado, cámara 2D
+  entities/   -> coche del jugador y NPCs (dibujo 2D en canvas)
+  stage/      -> renderizado de cada etapa (fondo, props, cofres, puerta del jefe)
+  match2d/    -> partidos: balón, campo, laberinto de jefe, IA, marcador
+  ui/         -> HUD, menús, mapa de etapas, garaje, tienda, diálogos
   main.ts     -> punto de entrada, conecta todos los sistemas
 ```

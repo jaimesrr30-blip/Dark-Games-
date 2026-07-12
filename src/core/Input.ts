@@ -1,27 +1,17 @@
 export class Input {
   private keys = new Set<string>();
   private justPressed = new Set<string>();
-  public pointerLocked = false;
-  public mouseDX = 0;
-  public mouseDY = 0;
 
-  constructor(target: HTMLElement) {
+  constructor() {
     window.addEventListener("keydown", (e) => {
       if (!this.keys.has(e.code)) this.justPressed.add(e.code);
       this.keys.add(e.code);
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
+        e.preventDefault();
+      }
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("blur", () => this.keys.clear());
-
-    target.addEventListener("mousemove", (e) => {
-      if (this.pointerLocked) {
-        this.mouseDX += e.movementX;
-        this.mouseDY += e.movementY;
-      }
-    });
-    document.addEventListener("pointerlockchange", () => {
-      this.pointerLocked = document.pointerLockElement === target;
-    });
   }
 
   isDown(code: string): boolean {
@@ -34,29 +24,24 @@ export class Input {
 
   consumeFrame() {
     this.justPressed.clear();
-    this.mouseDX = 0;
-    this.mouseDY = 0;
   }
 
-  get throttle(): number {
+  // Movimiento 8-direccional normalizado, x: -1..1 (izq/der), y: -1..1 (arriba/abajo)
+  get moveX(): number {
     let v = 0;
-    if (this.isDown("KeyW") || this.isDown("ArrowUp")) v += 1;
-    if (this.isDown("KeyS") || this.isDown("ArrowDown")) v -= 1;
+    if (this.isDown("KeyD") || this.isDown("ArrowRight")) v += 1;
+    if (this.isDown("KeyA") || this.isDown("ArrowLeft")) v -= 1;
     return v;
   }
 
-  get steer(): number {
+  get moveY(): number {
     let v = 0;
-    if (this.isDown("KeyA") || this.isDown("ArrowLeft")) v += 1;
-    if (this.isDown("KeyD") || this.isDown("ArrowRight")) v -= 1;
+    if (this.isDown("KeyS") || this.isDown("ArrowDown")) v += 1;
+    if (this.isDown("KeyW") || this.isDown("ArrowUp")) v -= 1;
     return v;
   }
 
   get boost(): boolean {
-    return this.isDown("ShiftLeft") || this.isDown("ShiftRight");
-  }
-
-  get jump(): boolean {
     return this.isDown("Space");
   }
 }

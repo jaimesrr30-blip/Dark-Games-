@@ -31,9 +31,16 @@ let npcInstances: Npc2DInstance[] = [];
 let interactables: Interactable2D[] = [];
 let match: Match2D | null = null;
 let interior: Interior2D | null = null;
-let mode: "world" | "match" | "interior" = "world";
+let mode: "world" | "match" | "interior" | "ceremony" = "world";
 let pendingGuardian: NpcDef | null = null;
 let portalFxT = 0;
+
+interface KeyCeremony {
+  t: number;
+  total: number;
+  onDone: () => void;
+}
+let ceremony: KeyCeremony | null = null;
 
 function resize() {
   const w = window.innerWidth;
@@ -145,6 +152,7 @@ function beginGuardianMatch(def: NpcDef) {
   camera.snap(0, 0);
   mode = "match";
   ui.showMatchHUD();
+  ui.setMatchPetBadge(match.activePetBadge);
 }
 
 // ---------------- Partidos ----------------
@@ -159,6 +167,7 @@ function beginMatch(modeType: "normal" | "boss") {
   camera.snap(0, 0);
   mode = "match";
   ui.showMatchHUD();
+  ui.setMatchPetBadge(match.activePetBadge);
 }
 
 function endMatch() {
@@ -195,6 +204,15 @@ function endMatch() {
       ui.showEnding(() => {});
     }
   });
+}
+
+// ---------------- Ceremonia de las 3 llaves ----------------
+
+function beginKeyCeremony(onDone: () => void) {
+  ceremony = { t: 0, total: 2.6, onDone };
+  mode = "ceremony";
+  ui.hideWorldMenus();
+  ui.setInteractPrompt(null);
 }
 
 // ---------------- Interiores secretos ----------------
@@ -319,7 +337,7 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
             ui.toast("Aún no tienes las 3 llaves de esta etapa.");
             return;
           }
-          ui.showBossIntro(stage.def.id, () => beginMatch("boss"));
+          beginKeyCeremony(() => ui.showBossIntro(stage.def.id, () => beginMatch("boss")));
         },
       };
     }
@@ -381,7 +399,7 @@ function loop(tsMs: number) {
   } else if (mode === "match" && match) {
     match.update(dt);
     camera.follow(match.player.x, match.player.y, { w: match.width, h: match.height }, 0.1);
-    ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.boostFuel, match.touchCount);
+    ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.boostFuel, match.touchCount, match.turboBoostActive);
     ui.renderMinimap(0, 0, stage, true);
     match.draw(ctx, camera);
     if (match.finished) endMatch();
@@ -413,6 +431,23 @@ function loop(tsMs: number) {
     }
     ui.setInteractPrompt(label);
     if (label && action && input.wasPressed("KeyE")) action();
+  } else if (mode === "ceremony" && ceremony) {
+    ceremony.t += dt;
+    camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height }, 0.2);
+
+    stage.drawBackground(ctx, camera);
+    stage.drawProps(ctx, camera);
+    stage.drawLandmarks(ctx, camera);
+    player.draw(ctx, camera, false);
+    drawKeyCeremonyFx(ceremony.t, ceremony.total);
+
+    if (ceremony.t >= ceremony.total) {
+      const onDone = ceremony.onDone;
+      ceremony = null;
+      mode = "world";
+      ui.showWorldMenus();
+      onDone();
+    }
   }
 
   input.consumeFrame();
@@ -499,6 +534,91 @@ function drawSecretDoor() {
   ctx.strokeStyle = "#ffd76b";
   ctx.lineWidth = 3;
   ctx.strokeRect(-20, -34, 40, 44);
+  ctx.restore();
+}
+
+function drawKeyCeremonyFx(t: number, total: number) {
+  const [px, py] = camera.worldToScreen(player.x, player.y);
+  const w = camera.viewW;
+  const h = camera.viewH;
+
+  ctx.save();
+
+  // viñeta: oscurece los bordes para centrar la atención en el coche
+  const vignetteIn = Math.min(1, t / 0.5);
+  const vignetteOut = t > total - 0.4 ? Math.max(0, (total - t) / 0.4) : 1;
+  const vignetteA = vignetteIn * vignetteOut;
+  const grad = ctx.createRadialGradient(px, py, 40, px, py, Math.max(w, h) * 0.65);
+  grad.addColorStop(0, "rgba(0,0,0,0)");
+  grad.addColorStop(1, `rgba(4,4,10,${0.8 * vignetteA})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // las 3 llaves vuelan desde distintos puntos de la pantalla y convergen en el coche
+  const keyColors = ["#ffd76b", "#8fd3ff", "#ff8fe0"];
+  const startOffsets: [number, number][] = [
+    [-w * 0.36, -h * 0.3],
+    [w * 0.38, -h * 0.12],
+    [0, h * 0.36],
+  ];
+  const arriveStart = 0.35;
+  const arriveEnd = 1.7;
+  for (let i = 0; i < 3; i++) {
+    const localT = Math.max(0, Math.min(1, (t - arriveStart - i * 0.15) / (arriveEnd - arriveStart)));
+    if (localT <= 0) continue;
+    const ease = 1 - Math.pow(1 - localT, 3);
+    const kx = px + startOffsets[i][0] * (1 - ease);
+    const ky = py + startOffsets[i][1] * (1 - ease);
+    const scale = 0.6 + ease * 0.6;
+    const fadeOut = t > arriveEnd ? Math.max(0, 1 - (t - arriveEnd) / 0.35) : 1;
+    ctx.save();
+    ctx.translate(kx, ky);
+    ctx.rotate(ease * Math.PI * 2 * (i % 2 === 0 ? 1 : -1));
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = fadeOut;
+    ctx.fillStyle = keyColors[i];
+    ctx.strokeStyle = "#2a1a00";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, -10, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-2.5, -4, 5, 16);
+    ctx.fillRect(0, 8, 6, 3);
+    ctx.fillRect(0, 3, 5, 3);
+    ctx.restore();
+  }
+
+  // estallido de portal cuando las 3 llaves encajan
+  if (t > arriveEnd) {
+    const bt = Math.min(1, (t - arriveEnd) / 0.5);
+    ctx.globalAlpha = Math.max(0, 1 - bt) * 0.9;
+    ctx.fillStyle = "#fff8e0";
+    ctx.beginPath();
+    ctx.arc(px, py, 60 * bt, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffe08a";
+    ctx.lineWidth = 5;
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = Math.max(0, 1 - bt) * 0.7;
+      ctx.beginPath();
+      ctx.arc(px, py, 20 + bt * (200 + i * 50), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // texto de la ceremonia
+  ctx.save();
+  const textAlpha = t < arriveEnd ? Math.min(1, t / 0.4) : Math.max(0, 1 - (t - arriveEnd) / 0.5);
+  ctx.globalAlpha = textAlpha;
+  ctx.font = "900 26px 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffe9a8";
+  ctx.shadowColor = "rgba(0,0,0,0.85)";
+  ctx.shadowBlur = 8;
+  ctx.fillText(t < arriveEnd ? "Colocando las 3 llaves..." : "¡El portal se abre!", w / 2, h * 0.16);
   ctx.restore();
 }
 

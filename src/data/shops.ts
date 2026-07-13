@@ -9,6 +9,7 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "estela_neon",
     "bocina_sirena",
     "bocina_epica",
+    "gol_neon",
   ],
   shop_desierto: [
     "color_arena_dorada",
@@ -17,6 +18,7 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "turbo_llamas",
     "antena_bandera",
     "bocina_risa",
+    "gol_tormenta_arena",
   ],
   shop_bosque: [
     "color_musgo",
@@ -25,6 +27,7 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "color_esmeralda",
     "rueda_deportiva",
     "estela_humo",
+    "gol_hojas_magicas",
   ],
   shop_volcan: [
     "color_lava",
@@ -39,6 +42,7 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "bocina_viento",
     "rueda_celestial",
     "color_azul",
+    "gol_ventisca",
   ],
   shop_islas: [
     "color_cielo",
@@ -46,6 +50,7 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "estela_nube",
     "rueda_celestial",
     "balon_electrico",
+    "gol_aurora",
   ],
   shop_laboratorio: [
     "color_plasma",
@@ -53,10 +58,12 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "bocina_robot",
     "antena_secreta",
     "balon_electrico",
+    "gol_datos",
   ],
   shop_celestial: [
     "color_dorado",
     "gol_bendicion",
+    "gol_divino",
     "estela_celestial",
     "balon_dios",
     "color_sangre_divina",

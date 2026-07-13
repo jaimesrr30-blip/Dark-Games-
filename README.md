@@ -51,6 +51,14 @@ npm run preview
   exclusivo y temático (cada tienda vende cosas distintas), y un comprador
   de mascotas que paga más cuanto mayor sea la rareza de la mascota que le
   vendas.
+- **Mochila de llaves**: una pestaña "Llaves" dentro del Inventario muestra,
+  agrupadas por etapa, las llaves de guardián que ya tienes (p. ej. "Llave
+  de Desierto Solar") y las que aún te faltan, junto al nombre del guardián
+  que las custodia.
+- **Ceremonia de apertura del portal del jefe**: al reunir las 3 llaves de
+  una etapa y llegar a la puerta del jefe, la cámara se centra en tu coche
+  mientras las 3 llaves vuelan hacia él y un portal se abre antes de entrar
+  al duelo.
 - **Decenas de misiones por etapa** (principales, secundarias, especiales y
   ocultas): hablar con NPCs, ganar partidos, recolectar cofres/mascotas,
   conseguir llaves, vender mascotas y descubrir secretos. El registro de
@@ -65,16 +73,24 @@ npm run preview
   Divino y Prohibido.
 - **Sistema de mascotas con poderes en partido**: cada mascota da un poder
   distinto (recarga de turbo, golpe más fuerte, efecto de curva en el balón,
-  escudo defensivo o imán de balón); cuanto mejor la rareza, más fuerte el
-  efecto.
+  impulso de velocidad, escudo defensivo o imán de balón); cuanto mejor la
+  rareza, más fuerte el efecto. Durante el partido hay una insignia con el
+  nombre de tu mascota y su poder, y confirmación visual de que el poder
+  está activo: un aro alrededor de tu coche mientras el imán tira del balón,
+  un rayo junto al turbo cuando se recarga más rápido, y textos como
+  "¡GOLPE FUERTE!" o "¡ESCUDO!" al ocurrir el efecto.
 - **Partidos normales** ("campo de entrenamiento"): campo 2D con línea
   central discontinua y porterías tipo corchete a los lados, balón flotante,
   marcador, contador de toques y barra de turbo.
 - **Partidos de jefe**: mismo objetivo de marcar goles, pero en una arena
   mucho más grande tipo laberinto (paredes simétricas al estilo Pacman) con
   monedas repartidas para recoger durante el partido.
-- **Explosión de gol animada** al marcar, usando el color del objeto de
-  "explosión de gol" que tengas equipado.
+- **Explosión de gol animada** al marcar, usando el color (o los dos colores,
+  en los objetos más nuevos) del objeto de "explosión de gol" equipado; la
+  cantidad de partículas y el alcance del destello crecen con la rareza del
+  objeto. Hay explosiones exclusivas nuevas por etapa (neón en la ciudad,
+  tormenta de arena en el desierto, hojas mágicas en el bosque, ventisca en
+  el reino helado, aurora en las islas, lluvia de datos en el laboratorio).
 - **Dificultad progresiva**: los rivales de entrenamiento, guardianes y
   jefes son más rápidos y agresivos cuanto más avanzada esté la etapa.
 - **Piezas de cohete**: 4 piezas escondidas por el Reino Celestial más el

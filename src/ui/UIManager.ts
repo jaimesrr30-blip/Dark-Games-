@@ -7,7 +7,7 @@ import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
 import { shopCatalog } from "../data/shops";
 import { MISSIONS, type MissionType } from "../data/missions";
 import { STAGES, STAGE_ORDER, type StageId } from "../data/stages";
-import { NPCS, type NpcDef } from "../data/npcs";
+import { NPCS, guardiansForStage, type NpcDef } from "../data/npcs";
 import { CHESTS, PET_SPAWNS } from "../data/spawns";
 import { PET_ARCHETYPES, petSellPrice } from "../data/pets";
 import { visualFromState } from "../entities/carVisual";
@@ -36,7 +36,7 @@ export class UIManager {
   garagePreview: GaragePreview2D | null = null;
   private currentMissionTab: MissionType = "principal";
   private currentMissionStage: StageId | "all" = "all";
-  private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" = "cosmeticos";
+  private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" | "llaves" = "cosmeticos";
   private currentGarageSlot: ItemSlot = "color";
   private minimapCtx: CanvasRenderingContext2D;
   onEquipChange: (() => void) | null = null;
@@ -78,7 +78,7 @@ export class UIManager {
     });
     document.querySelectorAll<HTMLElement>("[data-itab]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        this.currentInventoryTab = btn.dataset.itab as "cosmeticos" | "mascotas" | "titulos";
+        this.currentInventoryTab = btn.dataset.itab as "cosmeticos" | "mascotas" | "titulos" | "llaves";
         document.querySelectorAll("[data-itab]").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         this.renderInventoryList();
@@ -438,6 +438,10 @@ export class UIManager {
 
   private renderInventoryList() {
     const list = qs("#inventory-list");
+    if (this.currentInventoryTab === "llaves") {
+      this.renderKeysList();
+      return;
+    }
     if (this.currentInventoryTab === "mascotas") {
       if (this.gs.data.pets.length === 0) {
         list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">Aún no tienes mascotas. ¡Explora las etapas para encontrarlas!</div>`;
@@ -499,6 +503,42 @@ export class UIManager {
         this.onEquipChange?.();
       });
     });
+  }
+
+  private renderKeysList() {
+    const list = qs("#inventory-list");
+    const stagesWithGuardians = STAGE_ORDER.filter((id) => id !== "hub");
+    let html = "";
+    for (const stageId of stagesWithGuardians) {
+      const stageDef = STAGES[stageId];
+      const guardians = guardiansForStage(stageId);
+      if (guardians.length === 0) continue;
+      const have = guardians.filter((g) => g.guardian && this.gs.hasKey(g.guardian.keyId)).length;
+      html += `
+        <div class="keys-stage-group">
+          <div class="keys-stage-header" style="border-color:${stageDef.accentColor};">
+            <span class="keys-stage-name">${stageDef.name}</span>
+            <span class="keys-stage-progress">${have}/${guardians.length}</span>
+          </div>
+          <div class="keys-grid">
+            ${guardians
+              .map((g) => {
+                const got = !!(g.guardian && this.gs.hasKey(g.guardian.keyId));
+                return `
+                <div class="key-card ${got ? "obtained" : "locked"}">
+                  <span class="key-icon">${got ? "🗝️" : "🔒"}</span>
+                  <span class="key-info">
+                    <span class="key-name">${got ? `Llave de ${stageDef.name}` : "Llave desconocida"}</span>
+                    <span class="key-sub">Custodia: ${g.name}</span>
+                  </span>
+                </div>`;
+              })
+              .join("")}
+          </div>
+        </div>`;
+    }
+    list.innerHTML =
+      html || `<div style="color:var(--text-dim);padding:20px;text-align:center;">Aún no has encontrado a ningún guardián.</div>`;
   }
 
   // ---------- Garaje ----------
@@ -724,7 +764,7 @@ export class UIManager {
     qs("#hud-menu-buttons").classList.remove("hidden");
     qs("#control-hint").classList.remove("hidden");
   }
-  updateMatchHUD(scoreA: number, scoreB: number, timeLeft: number, boostFuel: number, touches: number) {
+  updateMatchHUD(scoreA: number, scoreB: number, timeLeft: number, boostFuel: number, touches: number, turboBoostActive = false) {
     qs("#score-a").textContent = String(scoreA);
     qs("#score-b").textContent = String(scoreB);
     const m = Math.max(0, Math.floor(timeLeft / 60));
@@ -733,6 +773,18 @@ export class UIManager {
     qs<HTMLElement>("#boost-bar-fill").style.width = `${Math.max(0, boostFuel * 100)}%`;
     qs("#match-touches").textContent = String(touches);
     qs("#match-turbo-pct").textContent = `${Math.round(Math.max(0, boostFuel) * 100)}%`;
+    qs("#match-turbo-spark").classList.toggle("hidden", !turboBoostActive);
+  }
+
+  setMatchPetBadge(badge: { name: string; power: string } | null) {
+    const el = qs("#match-pet-badge");
+    if (!badge) {
+      el.classList.add("hidden");
+      return;
+    }
+    el.classList.remove("hidden");
+    qs("#match-pet-name").textContent = badge.name;
+    qs("#match-pet-power").textContent = badge.power;
   }
 
   showMatchEnd(won: boolean, scoreA: number, scoreB: number, rewardsText: string, onContinue: () => void) {

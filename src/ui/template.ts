@@ -133,6 +133,7 @@ export const UI_TEMPLATE = `
       <button class="tab-btn active interactive" data-itab="cosmeticos">Cosméticos</button>
       <button class="tab-btn interactive" data-itab="mascotas">Mascotas</button>
       <button class="tab-btn interactive" data-itab="titulos">Títulos</button>
+      <button class="tab-btn interactive" data-itab="llaves">🗝️ Llaves</button>
     </div>
     <div class="modal-body" id="inventory-list"></div>
   </div>
@@ -179,9 +180,16 @@ export const UI_TEMPLATE = `
   <div id="match-stats-bar" class="panel">
     <span>Toques: <b id="match-touches">0</b></span>
     <span class="divider"></span>
-    <span>Turbo: <b id="match-turbo-pct">100%</b></span>
+    <span>Turbo: <b id="match-turbo-pct">100%</b> <span id="match-turbo-spark" class="hidden">⚡</span></span>
   </div>
   <div id="boost-bar-wrap"><div id="boost-bar-fill"></div></div>
+  <div id="match-pet-badge" class="panel hidden">
+    <span id="match-pet-icon">🐾</span>
+    <span class="match-pet-info">
+      <span id="match-pet-name">Mascota</span>
+      <span id="match-pet-power">Poder</span>
+    </span>
+  </div>
   <div id="match-control-hint">WASD / Flechas para moverte · Espacio para turbo</div>
 </div>
 

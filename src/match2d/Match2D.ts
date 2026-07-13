@@ -6,10 +6,36 @@ import { generateMaze } from "./MazeGen";
 import type { Input } from "../core/Input";
 import type { GameState } from "../state/GameState";
 import { getItem } from "../data/items";
-import { petPowerValue } from "../data/pets";
+import { petPowerValue, PET_ARCHETYPES } from "../data/pets";
+import { RARITIES } from "../data/rarity";
 import type { StageId } from "../data/stages";
 import { STAGES } from "../data/stages";
 import { hashString } from "../utils/random";
+
+const POWER_LABELS: Record<string, string> = {
+  chispa: "Recarga de Turbo",
+  golpetazo: "Golpe Fuerte",
+  espiral: "Efecto Curva",
+  saltarin: "Impulso de Velocidad",
+  guardian: "Escudo de Gol",
+  magneto: "Imán de Balón",
+};
+
+interface PetFx {
+  hitMult: number;
+  curve: number;
+  magnet: number;
+  shield: number;
+  speedMult: number;
+}
+
+interface FxPopup {
+  x: number;
+  y: number;
+  text: string;
+  t: number;
+  color: string;
+}
 
 export type MatchMode = "normal" | "boss";
 const GOALS_TO_WIN = 5;
@@ -50,6 +76,13 @@ export class Match2D {
   private goalFxT = 0;
   private goalFxX = 0;
   private goalFxColor: string;
+  private goalFxColor2: string;
+  private goalFxRarityMult: number;
+  private fx: PetFx;
+  activePetBadge: { name: string; power: string } | null = null;
+  private playerTouching = false;
+  private opponentTouching = false;
+  private fxPopups: FxPopup[] = [];
 
   skill: number;
 
@@ -92,6 +125,15 @@ export class Match2D {
 
     const explosion = getItem(gs.data.equipped.explosionGol);
     this.goalFxColor = explosion?.colorHex ?? "#ffcc33";
+    this.goalFxColor2 = explosion?.colorHex2 ?? this.goalFxColor;
+    this.goalFxRarityMult = explosion ? RARITIES[explosion.rarity].order : 1;
+
+    this.fx = this.petFx();
+    const activePet = gs.getActivePet();
+    if (activePet) {
+      const arche = PET_ARCHETYPES.find((a) => a.id === activePet.archetypeId);
+      if (arche) this.activePetBadge = { name: arche.name, power: POWER_LABELS[arche.id] ?? arche.power };
+    }
   }
 
   private generateCoins(stage: StageId): Coin[] {
@@ -110,10 +152,10 @@ export class Match2D {
     return coins;
   }
 
-  private petFx() {
+  private petFx(): PetFx {
     const pet = this.gs.getActivePet();
     this.player.boostRegenMult = 1;
-    const fx = { hitMult: 1, curve: 0, magnet: 0, shield: 0 };
+    const fx: PetFx = { hitMult: 1, curve: 0, magnet: 0, shield: 0, speedMult: 0 };
     if (!pet) return fx;
     const power = petPowerValue(pet);
     switch (pet.archetypeId) {
@@ -132,12 +174,19 @@ export class Match2D {
       case "magneto":
         fx.magnet = power;
         break;
+      case "saltarin":
+        // Sin eje vertical en este juego 2D: el "salto" se traduce en un
+        // impulso extra de velocidad punta y aceleración.
+        fx.speedMult = power;
+        break;
     }
     return fx;
   }
 
   update(dt: number) {
     if (this.goalFxT > 0) this.goalFxT = Math.max(0, this.goalFxT - dt);
+    for (const p of this.fxPopups) p.t += dt;
+    this.fxPopups = this.fxPopups.filter((p) => p.t < 0.9);
     if (this.finished) return;
     if (this.goalPause > 0) {
       this.goalPause -= dt;
@@ -150,9 +199,9 @@ export class Match2D {
     }
 
     const bounds = { minX: -this.width / 2, maxX: this.width / 2, minY: -this.height / 2, maxY: this.height / 2 };
-    const fx = this.petFx();
+    const fx = this.fx;
 
-    this.player.update(dt, { x: this.input.moveX, y: this.input.moveY, boost: this.input.boost }, bounds);
+    this.player.update(dt, { x: this.input.moveX, y: this.input.moveY, boost: this.input.boost }, bounds, 1 + fx.speedMult);
     const aiInput = this.computeAiInput();
     const speedMult = 0.72 + this.skill * 0.55;
     this.opponent.update(dt, aiInput, bounds, speedMult);
@@ -230,17 +279,28 @@ export class Match2D {
     }
   }
 
-  private resolveBallCar(car: CarBody2D, isPlayer: boolean, fx: { hitMult: number; curve: number; magnet: number; shield: number }) {
+  private pushPopup(x: number, y: number, text: string, color: string) {
+    this.fxPopups.push({ x, y, text, t: 0, color });
+  }
+
+  private resolveBallCar(car: CarBody2D, isPlayer: boolean, fx: PetFx) {
     const dx = this.ball.x - car.x;
     const dy = this.ball.y - car.y;
     const dist = Math.hypot(dx, dy);
     const minDist = this.ball.radius + car.size * 0.55;
-    if (dist < minDist && dist > 0.001) {
+    const touching = dist < minDist && dist > 0.001;
+    const wasTouching = isPlayer ? this.playerTouching : this.opponentTouching;
+    const justEntered = touching && !wasTouching;
+    if (isPlayer) this.playerTouching = touching;
+    else this.opponentTouching = touching;
+
+    if (touching) {
       const nx = dx / dist;
       const ny = dy / dist;
       let power = 220 + car.speed * 0.9;
+      const shieldActive = !isPlayer && fx.shield > 0 && this.ball.x < -this.width * 0.3;
       if (isPlayer) power *= fx.hitMult;
-      if (!isPlayer && fx.shield > 0 && this.ball.x < -this.width * 0.3) power *= Math.max(0.3, 1 - fx.shield);
+      if (shieldActive) power *= Math.max(0.3, 1 - fx.shield);
 
       this.ball.vx += nx * power + car.vx * 0.35;
       this.ball.vy += ny * power + car.vy * 0.35;
@@ -254,6 +314,12 @@ export class Match2D {
       this.ball.x += nx * overlap;
       this.ball.y += ny * overlap;
       this.touches++;
+
+      if (justEntered) {
+        if (isPlayer && fx.hitMult > 1.05) this.pushPopup(this.ball.x, this.ball.y - 30, "¡GOLPE FUERTE!", "#ffcc33");
+        else if (isPlayer && fx.curve > 0.05) this.pushPopup(this.ball.x, this.ball.y - 30, "↺ EFECTO CURVA", "#66e0ff");
+        if (shieldActive) this.pushPopup(this.player.x, this.player.y - 40, "🛡 ESCUDO", "#8fd3ff");
+      }
     } else if (isPlayer && fx.magnet > 0 && dist < 200) {
       const pull = (1 - dist / 200) * fx.magnet * 400;
       this.ball.vx -= (dx / dist) * pull * 0.016;
@@ -388,7 +454,45 @@ export class Match2D {
     this.opponent.draw(ctx, camera, this.opponent.speed > 20);
     this.player.draw(ctx, camera, this.player.speed > 20);
 
+    if (this.fx.magnet > 0) this.drawMagnetAura(ctx, camera);
     if (this.goalFxT > 0) this.drawGoalExplosion(ctx, camera);
+    this.drawFxPopups(ctx, camera);
+  }
+
+  private drawMagnetAura(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    const [sx, sy] = camera.worldToScreen(this.player.x, this.player.y);
+    const pulse = 1 + Math.sin(performance.now() / 260) * 0.06;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#8fc0ff";
+    ctx.setLineDash([6, 8]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 200 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  private drawFxPopups(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    for (const p of this.fxPopups) {
+      const [sx, sy] = camera.worldToScreen(p.x, p.y);
+      const alpha = Math.max(0, 1 - p.t / 0.9);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "900 16px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = p.color;
+      ctx.strokeStyle = "rgba(0,0,0,0.7)";
+      ctx.lineWidth = 3;
+      ctx.strokeText(p.text, sx, sy - p.t * 40);
+      ctx.fillText(p.text, sx, sy - p.t * 40);
+      ctx.restore();
+    }
+  }
+
+  get turboBoostActive(): boolean {
+    return this.player.boostRegenMult > 1.01;
   }
 
   private drawGoalExplosion(ctx: CanvasRenderingContext2D, camera: Camera2D) {
@@ -396,23 +500,24 @@ export class Match2D {
     const [sx, sy] = camera.worldToScreen(this.goalFxX, 0);
     ctx.save();
 
-    // destello de fondo
+    // destello de fondo (más grande e intenso cuanto más rara la explosión equipada)
+    const reach = 220 + this.goalFxRarityMult * 10;
     ctx.globalAlpha = Math.max(0, 1 - t * 1.6);
-    ctx.fillStyle = this.goalFxColor;
+    ctx.fillStyle = this.goalFxColor2;
     ctx.globalCompositeOperation = "lighter";
     ctx.beginPath();
-    ctx.arc(sx, sy, 40 + t * 260, 0, Math.PI * 2);
+    ctx.arc(sx, sy, 40 + t * (reach + 40), 0, Math.PI * 2);
     ctx.fill();
 
-    // partículas radiales
-    const count = 16;
+    // partículas radiales (bicolor, más cantidad cuanto más rara la explosión)
+    const count = 14 + Math.round(this.goalFxRarityMult * 2.4);
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2 + t * 1.5;
-      const dist = t * 220;
+      const dist = t * reach;
       const px = sx + Math.cos(angle) * dist;
       const py = sy + Math.sin(angle) * dist;
       ctx.globalAlpha = Math.max(0, 1 - t);
-      ctx.fillStyle = this.goalFxColor;
+      ctx.fillStyle = i % 2 === 0 ? this.goalFxColor : this.goalFxColor2;
       ctx.beginPath();
       ctx.arc(px, py, 6 * (1 - t) + 2, 0, Math.PI * 2);
       ctx.fill();

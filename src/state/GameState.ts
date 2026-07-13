@@ -36,6 +36,7 @@ export interface SaveData {
   discoveredSecrets: Record<string, boolean>;
   keysCollected: Record<string, boolean>;
   puzzleItemsCollected: Record<string, boolean>;
+  hideoutsDefeated: Record<string, boolean>;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -76,6 +77,7 @@ function defaultSave(): SaveData {
     discoveredSecrets: {},
     keysCollected: {},
     puzzleItemsCollected: {},
+    hideoutsDefeated: {},
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -379,6 +381,19 @@ export class GameState {
     this.save();
     this.emit();
     this.notifyEvent("descubrirSecreto", id, 1);
+    return true;
+  }
+
+  isHideoutDefeated(id: string): boolean {
+    return !!this.data.hideoutsDefeated[id];
+  }
+
+  defeatHideout(id: string) {
+    if (this.data.hideoutsDefeated[id]) return false;
+    this.data.hideoutsDefeated[id] = true;
+    this.save();
+    this.emit();
+    this.notifyEvent("derrotarEnemigo", id, 1);
     return true;
   }
 

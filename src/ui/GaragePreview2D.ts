@@ -1,8 +1,10 @@
 import { roundRect, type CarVisual2D } from "../entities/Car2D";
+import { animatedColor } from "../utils/color";
 
 export class GaragePreview2D {
   private ctx: CanvasRenderingContext2D;
   private rotation = 0;
+  private colorT = 0;
   private resizeObserver: ResizeObserver;
   private visual: CarVisual2D = { bodyColor: "#ffffff", borderColor: "#222", turboColor: "#66ccff", antennaColor: null };
 
@@ -52,6 +54,7 @@ export class GaragePreview2D {
     ctx.restore();
 
     this.rotation += dt * 0.6;
+    this.colorT += dt;
 
     ctx.save();
     ctx.translate(w / 2, h / 2);
@@ -65,11 +68,11 @@ export class GaragePreview2D {
     ctx.rotate(Math.sin(this.rotation) * 0.5);
 
     const r = s * 0.22;
-    ctx.fillStyle = this.visual.bodyColor;
+    ctx.fillStyle = animatedColor(this.visual.bodyColor, this.visual.bodyColor2, this.colorT);
     roundRect(ctx, -s / 2, -s / 2, s, s, r);
     ctx.fill();
     ctx.lineWidth = Math.max(3, s * 0.06);
-    ctx.strokeStyle = this.visual.borderColor;
+    ctx.strokeStyle = animatedColor(this.visual.borderColor, this.visual.borderColor2, this.colorT, 1.7);
     roundRect(ctx, -s / 2, -s / 2, s, s, r);
     ctx.stroke();
 

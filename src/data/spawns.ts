@@ -108,6 +108,31 @@ export const SECRET_DOORS: SecretDoorSpawn[] = [
   { id: "secreto_celestial", stage: "celestial", pos: [900, 600], chestMinRarity: "divino", rewardItemId: "color_sangre_divina", coins: 1500 },
 ];
 
+export interface HideoutSpawn {
+  id: string;
+  stage: StageId;
+  pos: [number, number];
+  enemyName: string;
+  enemyColor: string;
+  difficulty: number;
+  rewardCoins: number;
+  rewardItemId?: string;
+}
+
+// Una guarida escondida por etapa: entra, derrota al enemigo en un partido y
+// consigue monedas (y a veces un objeto) como recompensa. Misión secundaria.
+export const HIDEOUTS: HideoutSpawn[] = [
+  { id: "guarida_hub", stage: "hub", pos: [560, -320], enemyName: "Matón Novato", enemyColor: "#8a8a8a", difficulty: 0.3, rewardCoins: 250 },
+  { id: "guarida_ciudad", stage: "ciudad", pos: [700, 500], enemyName: "Pandillero Neón", enemyColor: "#ff2fd1", difficulty: 0.42, rewardCoins: 400, rewardItemId: "bocina_sirena" },
+  { id: "guarida_desierto", stage: "desierto", pos: [-700, 550], enemyName: "Saqueador de Dunas", enemyColor: "#c98a3a", difficulty: 0.48, rewardCoins: 480 },
+  { id: "guarida_bosque", stage: "bosque", pos: [700, -550], enemyName: "Cazador Furtivo", enemyColor: "#4a7c3f", difficulty: 0.54, rewardCoins: 560, rewardItemId: "estela_hojas" },
+  { id: "guarida_volcan", stage: "volcan", pos: [-700, -550], enemyName: "Forajido de Magma", enemyColor: "#ff5500", difficulty: 0.6, rewardCoins: 640 },
+  { id: "guarida_helado", stage: "helado", pos: [700, 550], enemyName: "Bandido de Escarcha", enemyColor: "#66e0ff", difficulty: 0.66, rewardCoins: 720, rewardItemId: "bocina_viento" },
+  { id: "guarida_islas", stage: "islas", pos: [-700, -550], enemyName: "Pirata del Cielo", enemyColor: "#dfffea", difficulty: 0.72, rewardCoins: 800 },
+  { id: "guarida_laboratorio", stage: "laboratorio", pos: [700, -550], enemyName: "Androide Rebelde", enemyColor: "#4dffe0", difficulty: 0.78, rewardCoins: 900, rewardItemId: "bocina_robot" },
+  { id: "guarida_celestial", stage: "celestial", pos: [-700, 550], enemyName: "Centinela Caído", enemyColor: "#ffd76b", difficulty: 0.85, rewardCoins: 1100 },
+];
+
 // Punto de entrada al jugar la etapa (siempre cerca del borde inferior).
 export function stageSpawnPoint(stage: StageId): [number, number] {
   const s = STAGES[stage];

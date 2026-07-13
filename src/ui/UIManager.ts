@@ -170,15 +170,32 @@ export class UIManager {
   }
 
   // ---------- HUD ----------
+  private lastCoins: number | null = null;
+  private lastDiamonds: number | null = null;
+
   refreshHUD() {
     const d = this.gs.data;
-    qs("#hud-coins").textContent = Math.floor(d.monedas).toLocaleString("es-ES");
-    qs("#hud-diamonds").textContent = Math.floor(d.diamantes).toLocaleString("es-ES");
+    const coins = Math.floor(d.monedas);
+    const diamonds = Math.floor(d.diamantes);
+    qs("#hud-coins").textContent = coins.toLocaleString("es-ES");
+    qs("#hud-diamonds").textContent = diamonds.toLocaleString("es-ES");
+    if (this.lastCoins !== null && coins > this.lastCoins) this.popPill("#hud-coins");
+    if (this.lastDiamonds !== null && diamonds > this.lastDiamonds) this.popPill("#hud-diamonds");
+    this.lastCoins = coins;
+    this.lastDiamonds = diamonds;
     qs("#hud-level").textContent = `Nivel ${d.level}`;
     const need = xpForLevel(d.level);
     qs("#hud-xp-label").textContent = `${Math.floor(d.xp)} / ${need} XP`;
     qs<HTMLElement>("#xp-bar-fill").style.width = `${Math.min(100, (d.xp / need) * 100)}%`;
     this.renderMissionTracker();
+  }
+
+  private popPill(sel: string) {
+    const pill = qs(sel).closest(".currency-pill");
+    if (!pill) return;
+    pill.classList.remove("pill-pop");
+    void (pill as HTMLElement).offsetWidth;
+    pill.classList.add("pill-pop");
   }
 
   private renderMissionTracker() {
@@ -678,22 +695,20 @@ export class UIManager {
   }
 
   // ---------- Negociación con guardianes ----------
-  openGuardianModal(npc: NpcDef, onAction: (action: "pay" | "match" | "leave") => void) {
+  openGuardianModal(npc: NpcDef, onAction: (action: "payAndPlay" | "leave") => void) {
     const g = npc.guardian!;
     qs("#modal-guardian").classList.add("show");
     qs("#guardian-title").textContent = npc.name;
-    qs("#guardian-text").textContent = `Puedo darte mi llave si me pagas ${g.priceCoins} monedas, o si me ganas un partido. Tú decides.`;
-    qs("#guardian-pay-label").textContent = `Pagar ${g.priceCoins} monedas`;
+    qs("#guardian-text").textContent = `Te echo un partido por mi llave, pero antes necesito que me pagues ${g.priceCoins} monedas. Si ganas, la llave es tuya.`;
+    const canAfford = this.gs.canAfford(g.priceCoins, "monedas");
+    qs("#guardian-pay-label").textContent = `Pagar ${g.priceCoins} monedas y jugar`;
     const payBtn = qs<HTMLButtonElement>("#btn-guardian-pay");
-    payBtn.disabled = !this.gs.canAfford(g.priceCoins, "monedas");
+    payBtn.disabled = !canAfford;
     payBtn.onclick = () => {
       qs("#modal-guardian").classList.remove("show");
-      onAction("pay");
+      onAction("payAndPlay");
     };
-    qs<HTMLButtonElement>("#btn-guardian-match").onclick = () => {
-      qs("#modal-guardian").classList.remove("show");
-      onAction("match");
-    };
+    qs<HTMLButtonElement>("#btn-guardian-leave").textContent = canAfford ? "Ahora no, volveré" : "No tengo suficiente dinero, volveré";
     qs<HTMLButtonElement>("#btn-guardian-leave").onclick = () => {
       qs("#modal-guardian").classList.remove("show");
       onAction("leave");

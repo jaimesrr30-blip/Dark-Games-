@@ -1,6 +1,6 @@
 import { STAGES, type StageId } from "./stages";
 import { NPCS } from "./npcs";
-import { SECRET_DOORS } from "./spawns";
+import { SECRET_DOORS, HIDEOUTS } from "./spawns";
 
 export type MissionType = "principal" | "secundaria" | "especial" | "oculta";
 export type MissionObjectiveType =
@@ -14,7 +14,8 @@ export type MissionObjectiveType =
   | "recogerBotones"
   | "venderMascota"
   | "descubrirSecreto"
-  | "recogerPiezas";
+  | "recogerPiezas"
+  | "derrotarEnemigo";
 
 export interface MissionObjective {
   type: MissionObjectiveType;
@@ -570,7 +571,26 @@ function secretDoorMissions(): MissionDef[] {
   });
 }
 
-MISSIONS.push(...guardianKeyMissions(), ...petSellMissions(), ...secretDoorMissions());
+// Una misión secundaria por cada guarida: entra, derrota al enemigo y cobra la recompensa.
+function hideoutMissions(): MissionDef[] {
+  return HIDEOUTS.map((h) => {
+    const def: MissionDef = {
+      id: h.id,
+      type: "secundaria",
+      stage: h.stage,
+      title: `Guarida: ${h.enemyName}`,
+      giver: "sistema",
+      description: `Hay una guarida escondida en esta etapa. Entra y derrota a ${h.enemyName} en un partido para conseguir tu recompensa.`,
+      objectives: [{ type: "derrotarEnemigo", target: h.id, count: 1, description: `Derrota a ${h.enemyName}` }],
+      rewardMonedas: h.rewardCoins,
+      rewardDiamantes: 8,
+      rewardXp: 130,
+    };
+    return def;
+  });
+}
+
+MISSIONS.push(...guardianKeyMissions(), ...petSellMissions(), ...secretDoorMissions(), ...hideoutMissions());
 
 export function missionById(id: string): MissionDef | undefined {
   return MISSIONS.find((m) => m.id === id);

@@ -1,8 +1,11 @@
 import type { Camera2D } from "../core/Camera2D";
+import { animatedColor } from "../utils/color";
 
 export interface CarVisual2D {
   bodyColor: string;
+  bodyColor2?: string;
   borderColor: string;
+  borderColor2?: string;
   turboColor: string;
   antennaColor: string | null;
 }
@@ -26,6 +29,7 @@ export class CarBody2D {
   boostRegenMult = 1;
   size = SIZE;
   private bobT = Math.random() * 10;
+  private colorT = Math.random() * 10;
 
   constructor(public visual: CarVisual2D) {}
 
@@ -80,6 +84,7 @@ export class CarBody2D {
 
     if (Math.abs(this.vx) > 8) this.facing = this.vx > 0 ? 1 : -1;
     this.bobT += dt * (4 + speed * 0.01);
+    this.colorT += dt;
   }
 
   get speed() {
@@ -116,11 +121,11 @@ export class CarBody2D {
 
     // cuerpo (cubo visto desde arriba)
     const r = 8;
-    ctx.fillStyle = this.visual.bodyColor;
+    ctx.fillStyle = animatedColor(this.visual.bodyColor, this.visual.bodyColor2, this.colorT);
     roundRect(ctx, -s / 2, -s / 2, s, s, r);
     ctx.fill();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = this.visual.borderColor;
+    ctx.strokeStyle = animatedColor(this.visual.borderColor, this.visual.borderColor2, this.colorT, 1.7);
     roundRect(ctx, -s / 2, -s / 2, s, s, r);
     ctx.stroke();
 

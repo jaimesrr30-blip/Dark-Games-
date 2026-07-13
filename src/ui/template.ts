@@ -104,7 +104,6 @@ export const UI_TEMPLATE = `
       <p id="guardian-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:18px;"></p>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="btn-arrow gold interactive" id="btn-guardian-pay"><span id="guardian-pay-label">Pagar</span> <span class="arrow-icon">➤</span></button>
-        <button class="btn-arrow primary interactive" id="btn-guardian-match">Jugar un partido por la llave <span class="arrow-icon">➤</span></button>
         <button class="btn-arrow interactive" id="btn-guardian-leave">Ahora no, volveré <span class="arrow-icon">➤</span></button>
       </div>
     </div>

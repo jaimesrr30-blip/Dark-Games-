@@ -31,7 +31,7 @@ function guardian(keyId: string, priceCoins: number, difficulty: number, flavor?
     priceCoins,
     difficulty,
     winLine: flavor?.winLine ?? "¡Bien jugado! Un trato es un trato. Aquí tienes la llave.",
-    payLine: flavor?.payLine ?? "Trato hecho. Aquí tienes tu llave.",
+    payLine: flavor?.payLine ?? "Trato hecho. ¡Que empiece el partido!",
     noMoneyLine: flavor?.noMoneyLine ?? "No tienes suficiente. Vuelve cuando reúnas más monedas.",
     alreadyLine: flavor?.alreadyLine ?? "Ya tienes mi llave. ¡Buena suerte con las otras!",
   };

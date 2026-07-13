@@ -8,13 +8,15 @@ import { visualFromState } from "./entities/carVisual";
 import { Npc2DInstance } from "./entities/Npc2D";
 import { NPCS, type NpcDef } from "./data/npcs";
 import { MISSIONS } from "./data/missions";
-import { STAGES, type StageId } from "./data/stages";
+import { STAGES, STAGE_ORDER, type StageId } from "./data/stages";
 import { Stage2D } from "./stage/Stage2D";
 import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
 import { Match2D } from "./match2d/Match2D";
 import { Interior2D } from "./stage/Interior2D";
-import { PYRAMID_BUTTONS, SECRET_DOORS, pyramidPos, ROCKET_PARTS, ROCKET_ENGINE_ID } from "./data/spawns";
+import { HideoutInterior2D } from "./stage/HideoutInterior2D";
+import { PYRAMID_BUTTONS, SECRET_DOORS, pyramidPos, ROCKET_PARTS, ROCKET_ENGINE_ID, HIDEOUTS, type HideoutSpawn } from "./data/spawns";
 import { petSellPrice } from "./data/pets";
+import { hashString } from "./utils/random";
 
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -31,8 +33,11 @@ let npcInstances: Npc2DInstance[] = [];
 let interactables: Interactable2D[] = [];
 let match: Match2D | null = null;
 let interior: Interior2D | null = null;
-let mode: "world" | "match" | "interior" | "ceremony" = "world";
+let hideoutInterior: HideoutInterior2D | null = null;
+let mode: "world" | "match" | "interior" | "ceremony" | "hideout" = "world";
 let pendingGuardian: NpcDef | null = null;
+let pendingHideout: HideoutSpawn | null = null;
+let matchEnding = false;
 let portalFxT = 0;
 
 interface KeyCeremony {
@@ -118,18 +123,22 @@ function talkToGuardian(def: NpcDef) {
       return;
     }
     ui.openGuardianModal(def, (action) => {
-      if (action === "pay") {
+      if (action === "payAndPlay") {
         if (gs.spend(g.priceCoins, "monedas")) {
-          gs.grantKey(g.keyId);
           ui.toast(g.payLine, "raro");
+          beginGuardianMatch(def);
         } else {
           ui.toast(g.noMoneyLine);
         }
-      } else if (action === "match") {
-        beginGuardianMatch(def);
       }
     });
   });
+}
+
+function fieldThemeForGuardian(def: NpcDef): StageId {
+  const others = STAGE_ORDER.filter((s) => s !== "hub" && s !== stage.def.id);
+  const idx = hashString(def.id) % others.length;
+  return others[idx];
 }
 
 function pyramidButtonIds(): string[] {
@@ -148,7 +157,7 @@ function talkToPyramidGuardian(def: NpcDef) {
 
 function beginGuardianMatch(def: NpcDef) {
   pendingGuardian = def;
-  match = new Match2D(gs, input, "normal", stage.def.id, def.guardian!.difficulty, def.color);
+  match = new Match2D(gs, input, "normal", stage.def.id, def.guardian!.difficulty, def.color, fieldThemeForGuardian(def));
   camera.snap(0, 0);
   mode = "match";
   ui.showMatchHUD();
@@ -171,13 +180,22 @@ function beginMatch(modeType: "normal" | "boss") {
 }
 
 function endMatch() {
-  if (!match || !match.result) return;
+  if (!match || !match.result || matchEnding) return;
+  matchEnding = true;
   const r = match.result;
   const guardian = pendingGuardian;
   pendingGuardian = null;
+  const hideout = pendingHideout;
+  pendingHideout = null;
 
   if (guardian && r.won) {
     gs.grantKey(guardian.guardian!.keyId);
+  }
+  if (hideout && r.won) {
+    // defeatHideout dispara la misión de la guarida, que ya otorga
+    // rewardMonedas/rewardDiamantes/rewardXp automáticamente al completarse.
+    gs.defeatHideout(hideout.id);
+    if (hideout.rewardItemId) gs.grantItem(hideout.rewardItemId);
   }
 
   let wonRocketEngine = false;
@@ -189,16 +207,19 @@ function endMatch() {
   const rewardsText = r.won
     ? guardian
       ? `${guardian.guardian!.winLine} +200 monedas · +4 diamantes · +120 XP`
-      : r.mode === "boss"
-        ? wonRocketEngine
-          ? "+900 monedas · +30 diamantes · +450 XP · ¡Consigues el motor del cohete!"
-          : "+900 monedas · +30 diamantes · +450 XP · ¡Siguiente etapa desbloqueada!"
-        : "+200 monedas · +4 diamantes · +120 XP"
+      : hideout
+        ? `¡Guarida despejada! +${hideout.rewardCoins} monedas${hideout.rewardItemId ? " · +1 objeto" : ""} · +8 diamantes · +130 XP`
+        : r.mode === "boss"
+          ? wonRocketEngine
+            ? "+900 monedas · +30 diamantes · +450 XP · ¡Consigues el motor del cohete!"
+            : "+900 monedas · +30 diamantes · +450 XP · ¡Siguiente etapa desbloqueada!"
+          : "+200 monedas · +4 diamantes · +120 XP"
     : "Sin recompensas esta vez. ¡Inténtalo de nuevo!";
   ui.hideMatchHUD();
   ui.showMatchEnd(r.won, r.scoreA, r.scoreB, rewardsText, () => {
     match = null;
-    mode = "world";
+    matchEnding = false;
+    mode = hideout ? "hideout" : "world";
     if (r.won && r.mode === "boss") portalFxT = 1.4;
     if (wonRocketEngine && gs.countPuzzleItems([...ROCKET_PARTS.map((p) => p.id), ROCKET_ENGINE_ID]) >= 5) {
       ui.showEnding(() => {});
@@ -233,6 +254,35 @@ function exitInterior() {
   player.setPosition(door.pos[0], door.pos[1] + 60);
   camera.snap(player.x, player.y);
   ui.showWorldMenus();
+}
+
+// ---------------- Guaridas (misión secundaria) ----------------
+
+function enterHideout(hideout: HideoutSpawn) {
+  hideoutInterior = new HideoutInterior2D(hideout);
+  player.setPosition(hideoutInterior.spawnPos[0], hideoutInterior.spawnPos[1]);
+  camera.snap(player.x, player.y);
+  mode = "hideout";
+  ui.hideWorldMenus();
+}
+
+function exitHideout() {
+  if (!hideoutInterior) return;
+  const h = hideoutInterior.hideout;
+  hideoutInterior = null;
+  mode = "world";
+  player.setPosition(h.pos[0], h.pos[1] + 60);
+  camera.snap(player.x, player.y);
+  ui.showWorldMenus();
+}
+
+function beginHideoutMatch(h: HideoutSpawn) {
+  pendingHideout = h;
+  match = new Match2D(gs, input, "normal", h.stage, h.difficulty, h.enemyColor);
+  camera.snap(0, 0);
+  mode = "match";
+  ui.showMatchHUD();
+  ui.setMatchPetBadge(match.activePetBadge);
 }
 
 // ---------------- Interacción más cercana ----------------
@@ -317,6 +367,18 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     }
   }
 
+  const hideout = HIDEOUTS.find((h) => h.stage === stage.def.id);
+  if (hideout) {
+    const d = Math.hypot(p.x - hideout.pos[0], p.y - hideout.pos[1]);
+    if (d < 45 && (!best || d < best.dist)) {
+      best = {
+        dist: d,
+        label: gs.isHideoutDefeated(hideout.id) ? "Entrar a la guarida (ya despejada)" : "Entrar a la guarida",
+        run: () => enterHideout(hideout),
+      };
+    }
+  }
+
   const [tx, ty] = stage.trainingFieldPos;
   const dTrain = Math.hypot(p.x - tx, p.y - ty);
   if (dTrain < 60 && (!best || dTrain < best.dist)) {
@@ -371,6 +433,7 @@ function loop(tsMs: number) {
     if (stage.def.id === "desierto") drawPyramidAndButtons();
     if (stage.def.id === "celestial") drawRocketParts();
     drawSecretDoor();
+    drawHideoutDoor();
     stage.drawBounds(ctx, camera);
 
     for (const it of interactables) it.draw(ctx, camera, performance.now() / 1000);
@@ -431,6 +494,29 @@ function loop(tsMs: number) {
     }
     ui.setInteractPrompt(label);
     if (label && action && input.wasPressed("KeyE")) action();
+  } else if (mode === "hideout" && hideoutInterior) {
+    if (!ui.anyModalOpen()) {
+      player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, hideoutInterior.bounds);
+    }
+    hideoutInterior.update(dt);
+    camera.follow(player.x, player.y, { w: 520, h: 400 }, 0.15);
+    const defeated = gs.isHideoutDefeated(hideoutInterior.hideout.id);
+    hideoutInterior.draw(ctx, camera, defeated);
+    player.draw(ctx, camera, player.speed > 20);
+
+    const dEnemy = Math.hypot(player.x - hideoutInterior.enemyPos[0], player.y - hideoutInterior.enemyPos[1]);
+    const dExitH = Math.hypot(player.x - hideoutInterior.exitPos[0], player.y - hideoutInterior.exitPos[1]);
+    let hLabel: string | null = null;
+    let hAction: (() => void) | null = null;
+    if (dEnemy < 45 && !defeated) {
+      hLabel = `Desafiar a ${hideoutInterior.hideout.enemyName}`;
+      hAction = () => beginHideoutMatch(hideoutInterior!.hideout);
+    } else if (dExitH < 45) {
+      hLabel = "Salir";
+      hAction = () => exitHideout();
+    }
+    ui.setInteractPrompt(hLabel);
+    if (hLabel && hAction && input.wasPressed("KeyE")) hAction();
   } else if (mode === "ceremony" && ceremony) {
     ceremony.t += dt;
     camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height }, 0.2);
@@ -534,6 +620,28 @@ function drawSecretDoor() {
   ctx.strokeStyle = "#ffd76b";
   ctx.lineWidth = 3;
   ctx.strokeRect(-20, -34, 40, 44);
+  ctx.restore();
+}
+
+function drawHideoutDoor() {
+  const hideout = HIDEOUTS.find((h) => h.stage === stage.def.id);
+  if (!hideout || !camera.isVisible(hideout.pos[0], hideout.pos[1], 100)) return;
+  const [sx, sy] = camera.worldToScreen(hideout.pos[0], hideout.pos[1]);
+  const defeated = gs.isHideoutDefeated(hideout.id);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.fillStyle = defeated ? "#2a1f1f" : "#3a1414";
+  ctx.fillRect(-22, -36, 44, 46);
+  ctx.strokeStyle = defeated ? "#7a5a5a" : "#ff5a5a";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-22, -36, 44, 46);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 11px 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.shadowColor = "rgba(0,0,0,0.8)";
+  ctx.shadowBlur = 3;
+  ctx.fillText(defeated ? "Guarida (despejada)" : "Guarida", 0, -46);
+  ctx.shadowBlur = 0;
   ctx.restore();
 }
 

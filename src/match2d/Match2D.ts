@@ -37,6 +37,19 @@ interface FxPopup {
   color: string;
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const v = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const num = parseInt(v, 16) || 0;
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function darken(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const mix = (c: number) => Math.round(c * (1 - amount));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
 export type MatchMode = "normal" | "boss";
 const GOALS_TO_WIN = 5;
 const MATCH_DURATION = 150;
@@ -83,6 +96,8 @@ export class Match2D {
   private playerTouching = false;
   private opponentTouching = false;
   private fxPopups: FxPopup[] = [];
+  private tileColorA: string;
+  private tileColorB: string;
 
   skill: number;
 
@@ -92,7 +107,8 @@ export class Match2D {
     public mode: MatchMode,
     public stage?: StageId,
     skill?: number,
-    opponentColor?: string
+    opponentColor?: string,
+    fieldStage?: StageId
   ) {
     if (mode === "boss" && stage) {
       this.width = 2000;
@@ -105,6 +121,10 @@ export class Match2D {
     }
     this.goalGapY = [-140, 140];
     this.skill = skill ?? (mode === "boss" ? 0.85 : 0.5);
+
+    const theme = STAGES[fieldStage ?? stage ?? "hub"];
+    this.tileColorA = darken(theme.groundColor, 0.82);
+    this.tileColorB = darken(theme.groundColorAlt, 0.8);
 
     if (mode === "boss" && stage) {
       this.walls = generateMaze(hashString(stage), this.width / 2, this.height / 2);
@@ -397,7 +417,11 @@ export class Match2D {
         const ix = Math.round((gx - bounds.minX) / tile);
         const iy = Math.round((gy - bounds.minY) / tile);
         const checker = (ix + iy) % 2 === 0;
-        ctx.fillStyle = checker ? (this.mode === "boss" ? "#1c1230" : "#152036") : (this.mode === "boss" ? "#221836" : "#182740");
+        if (this.mode === "boss") {
+          ctx.fillStyle = checker ? "#1c1230" : "#221836";
+        } else {
+          ctx.fillStyle = checker ? this.tileColorA : this.tileColorB;
+        }
         const [sx, sy] = camera.worldToScreen(gx, gy);
         ctx.fillRect(sx, sy, tile + 1, tile + 1);
       }

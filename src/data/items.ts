@@ -31,7 +31,7 @@ export const ITEMS: ItemDef[] = [
   { id: "color_esmeralda", slot: "color", name: "Esmeralda", rarity: "raro", price: 1200, currency: "monedas", colorHex: "#1fae6b", description: "Un verde brillante muy codiciado." },
   { id: "color_holografico", slot: "color", name: "Holográfico", rarity: "epico", price: 2500, currency: "monedas", colorHex: "#b35bff", description: "Cambia de tono según la luz." },
   { id: "color_dorado", slot: "color", name: "Dorado Legendario", rarity: "legendario", price: 60, currency: "diamantes", colorHex: "#ffcc33", description: "Reservado a los mejores pilotos." },
-  { id: "color_sangre_divina", slot: "color", name: "Sangre de Dios", rarity: "dios", price: 140, currency: "diamantes", colorHex: "#ff2c2c", description: "Emana un brillo pulsante." },
+  { id: "color_sangre_divina", slot: "color", name: "Sangre de Dios", rarity: "dios", price: 140, currency: "diamantes", colorHex: "#ff2c2c", colorHex2: "#ffae2e", description: "Emana un brillo pulsante." },
   { id: "color_vacio", slot: "color", name: "Vacío Secreto", rarity: "secreto", price: 260, currency: "diamantes", colorHex: "#0a0a0a", colorHex2: "#ff2fd1", description: "Absorbe la luz a su alrededor." },
   { id: "color_prohibido", slot: "color", name: "Prohibido", rarity: "prohibido", price: 999, currency: "diamantes", colorHex: "#1a0022", colorHex2: "#ff0033", description: "Nadie sabe de dónde viene este color." },
 
@@ -39,7 +39,7 @@ export const ITEMS: ItemDef[] = [
   { id: "rueda_estandar", slot: "rueda", name: "Borde Estándar", rarity: "comun", price: 0, currency: "monedas", colorHex: "#222222", description: "Borde de serie." },
   { id: "rueda_deportiva", slot: "rueda", name: "Borde Deportivo", rarity: "pocoComun", price: 500, currency: "monedas", colorHex: "#333333", description: "Mejor agarre en curva." },
   { id: "rueda_neon", slot: "rueda", name: "Borde Neón", rarity: "epico", price: 2200, currency: "monedas", colorHex: "#00e5ff", description: "Un borde brillante de neón." },
-  { id: "rueda_celestial", slot: "rueda", name: "Borde Celestial", rarity: "divino", price: 320, currency: "diamantes", colorHex: "#fff2c2", description: "Un borde dorado reluciente." },
+  { id: "rueda_celestial", slot: "rueda", name: "Borde Celestial", rarity: "divino", price: 320, currency: "diamantes", colorHex: "#fff2c2", colorHex2: "#ffffff", description: "Un borde que cambia de dorado a blanco." },
 
   // Turbos
   { id: "turbo_basico", slot: "turbo", name: "Turbo Básico", rarity: "comun", price: 0, currency: "monedas", colorHex: "#66ccff", description: "Impulso estándar." },

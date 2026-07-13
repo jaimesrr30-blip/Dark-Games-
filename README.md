@@ -42,11 +42,14 @@ npm run preview
   Plaza Central, una fogata junto al Druida Finn, estatuas en las grandes
   plazas).
 - **Sistema de llaves de guardianes**: 3 guardianes por etapa, cada uno con
-  su propia llave. Al hablarles puedes negociar: pagar monedas, jugar un
-  partido contra ellos y ganarlo, o irte y volver más tarde. Reunir las 3
-  llaves de una etapa abre la puerta de su jefe. El Desierto Solar tiene
-  además un guardián especial: hay que encontrar 3 botones de piedra
-  escondidos por el mapa y llevarlos a una pirámide para conseguir su llave.
+  su propia llave. Al hablarles negocias: pagar sus monedas de entrada y
+  jugarte la llave en un partido obligatorio (si pierdes, no hay segunda
+  oportunidad gratis), o irte y volver más tarde si no tienes suficiente.
+  Reunir las 3 llaves de una etapa abre la puerta de su jefe. El Desierto
+  Solar tiene además un guardián especial: hay que encontrar 3 botones de
+  piedra escondidos por el mapa y llevarlos a una pirámide para conseguir su
+  llave. Los partidos contra guardianes se juegan en un campo con los
+  colores de una etapa distinta a la que estás, para que se note diferente.
 - **Dos NPCs esenciales por etapa**: un vendedor con un catálogo de objetos
   exclusivo y temático (cada tienda vende cosas distintas), y un comprador
   de mascotas que paga más cuanto mayor sea la rareza de la mascota que le
@@ -66,11 +69,16 @@ npm run preview
 - **Puertas secretas**: una por etapa, escondidas en el mapa. Al entrar
   apareces en un pequeño interior con un cofre que da un objeto exclusivo de
   garaje/inventario y monedas.
+- **Guaridas**: una guarida por etapa con un enemigo esperando dentro; es su
+  propia misión secundaria ("entra y derrota a alguien"). Al vencerlo en un
+  partido consigues monedas y, en algunas guaridas, también un objeto.
 - Coche y NPCs representados como cuadrados/cubos de colores, sin ruedas ni
   detalle 3D.
 - Cofres y mascotas coleccionables por etapa, con **sistema de rarezas de 9
   niveles**: Común, Poco Común, Raro, Épico, Legendario, Dios, Secreto,
-  Divino y Prohibido.
+  Divino y Prohibido. Los objetos más "chetos" (Prohibido, Vacío Secreto,
+  Sangre de Dios, Borde Celestial) tienen un color animado que pulsa entre
+  sus dos tonos en el coche, tanto en el mundo como en el garaje.
 - **Sistema de mascotas con poderes en partido**: cada mascota da un poder
   distinto (recarga de turbo, golpe más fuerte, efecto de curva en el balón,
   impulso de velocidad, escudo defensivo o imán de balón); cuanto mejor la

@@ -1,8 +1,9 @@
 import type { OwnedPet } from "../data/pets";
 import type { StageId } from "../data/stages";
-import { STAGES, nextStage } from "../data/stages";
-import { MISSIONS, stageGateMissions, type MissionDef } from "../data/missions";
+import { nextStage } from "../data/stages";
+import { MISSIONS, type MissionDef } from "../data/missions";
 import { ITEMS } from "../data/items";
+import { guardiansForStage } from "../data/npcs";
 
 export interface MissionProgress {
   missionId: string;
@@ -33,6 +34,8 @@ export interface SaveData {
   chests: ChestState;
   petsCollected: Record<string, boolean>;
   discoveredSecrets: Record<string, boolean>;
+  keysCollected: Record<string, boolean>;
+  puzzleItemsCollected: Record<string, boolean>;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -71,6 +74,8 @@ function defaultSave(): SaveData {
     chests: { collected: {} },
     petsCollected: {},
     discoveredSecrets: {},
+    keysCollected: {},
+    puzzleItemsCollected: {},
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -220,21 +225,26 @@ export class GameState {
     return this.data.defeatedBosses.includes(stage);
   }
 
-  // progreso hacia desbloquear la puerta del jefe de una etapa (3 misiones + monedas)
-  stageGateStatus(stage: StageId) {
-    const def = STAGES[stage];
-    const gateMissions = stageGateMissions(stage);
-    const completed = gateMissions.filter((m) => this.getMissionProgress(m.id).completed).length;
-    const missionsOk = completed >= def.requiredMissions;
-    const coinsOk = this.data.monedas >= def.requiredCoins;
-    return {
-      completed,
-      required: def.requiredMissions,
-      requiredCoins: def.requiredCoins,
-      missionsOk,
-      coinsOk,
-      ready: missionsOk && coinsOk,
-    };
+  // ---------- Llaves de los guardianes ----------
+  hasKey(keyId: string): boolean {
+    return !!this.data.keysCollected[keyId];
+  }
+
+  grantKey(keyId: string) {
+    if (!this.hasKey(keyId)) {
+      this.data.keysCollected[keyId] = true;
+      this.save();
+      this.emit();
+      this.notifyEvent("obtenerLlave", keyId, 1);
+    }
+  }
+
+  // progreso hacia desbloquear la puerta del jefe de una etapa (3 llaves de guardianes)
+  stageKeysStatus(stage: StageId) {
+    const guardians = guardiansForStage(stage);
+    const have = guardians.filter((g) => g.guardian && this.hasKey(g.guardian.keyId)).length;
+    const required = guardians.length;
+    return { have, required, ready: required > 0 && have >= required };
   }
 
   setPlayerLocation(stage: StageId, pos: [number, number]) {
@@ -315,6 +325,37 @@ export class GameState {
     return true;
   }
 
+  hasPuzzleItem(id: string): boolean {
+    return !!this.data.puzzleItemsCollected[id];
+  }
+
+  collectPuzzleItem(id: string) {
+    if (this.data.puzzleItemsCollected[id]) return false;
+    this.data.puzzleItemsCollected[id] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  countPuzzleItems(ids: string[]): number {
+    return ids.filter((id) => this.hasPuzzleItem(id)).length;
+  }
+
+  // ---------- Vender mascotas ----------
+  sellPet(uid: string, coins: number): boolean {
+    const idx = this.data.pets.findIndex((p) => p.uid === uid);
+    if (idx === -1) return false;
+    this.data.pets.splice(idx, 1);
+    if (this.data.activePetUid === uid) {
+      this.data.activePetUid = this.data.pets[0]?.uid ?? null;
+    }
+    this.addCurrency(coins, 0);
+    this.save();
+    this.emit();
+    this.notifyEvent("venderMascota", "any", 1);
+    return true;
+  }
+
   addPet(pet: OwnedPet) {
     this.data.pets.push(pet);
     if (!this.data.activePetUid) this.data.activePetUid = pet.uid;
@@ -337,6 +378,7 @@ export class GameState {
     this.data.discoveredSecrets[id] = true;
     this.save();
     this.emit();
+    this.notifyEvent("descubrirSecreto", id, 1);
     return true;
   }
 

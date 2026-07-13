@@ -79,6 +79,43 @@ export const ITEMS: ItemDef[] = [
   { id: "titulo_explorador", slot: "titulo", name: "Explorador Incansable", rarity: "raro", price: 0, currency: "monedas", description: "Otorgado al completar varias etapas." },
   { id: "titulo_campeon", slot: "titulo", name: "Campeón Regional", rarity: "legendario", price: 0, currency: "monedas", description: "Otorgado al derrotar a un jefe de etapa." },
   { id: "titulo_eterno", slot: "titulo", name: "Piloto Eterno", rarity: "prohibido", price: 0, currency: "monedas", description: "Otorgado al derrotar al Campeón Eterno." },
+
+  // Objetos exclusivos de la Ciudad Futurista
+  { id: "estela_neon", slot: "estela", name: "Estela de Neón", rarity: "raro", price: 900, currency: "monedas", colorHex: "#ff2fd1", description: "Deja un rastro de neón rosa a tu paso." },
+  { id: "bocina_sirena", slot: "bocina", name: "Sirena Futurista", rarity: "raro", price: 700, currency: "monedas", description: "Una sirena ensordecedora de la ciudad." },
+
+  // Objetos exclusivos del Desierto Solar
+  { id: "color_arena_dorada", slot: "color", name: "Arena Dorada", rarity: "pocoComun", price: 500, currency: "monedas", colorHex: "#e4c580", description: "El color de las dunas al atardecer." },
+  { id: "rueda_bronce", slot: "rueda", name: "Borde de Bronce", rarity: "raro", price: 1300, currency: "monedas", colorHex: "#c98a3a", description: "Bronce antiguo pulido por la arena." },
+  { id: "balon_sol", slot: "balon", name: "Balón Solar", rarity: "legendario", price: 90, currency: "diamantes", colorHex: "#ffb703", description: "Arde como el sol del desierto." },
+
+  // Objetos exclusivos del Bosque Mágico
+  { id: "color_musgo", slot: "color", name: "Verde Musgo", rarity: "pocoComun", price: 500, currency: "monedas", colorHex: "#4a7c3f", description: "El verde profundo del bosque." },
+  { id: "estela_hojas", slot: "estela", name: "Estela de Hojas", rarity: "raro", price: 800, currency: "monedas", colorHex: "#6fcf6f", description: "Hojas mágicas flotan tras de ti." },
+  { id: "bocina_pajaro", slot: "bocina", name: "Canto de Pájaro", rarity: "pocoComun", price: 350, currency: "monedas", description: "Un canto dulce del bosque." },
+
+  // Objetos exclusivos de la Zona Volcánica
+  { id: "color_lava", slot: "color", name: "Lava Fundida", rarity: "raro", price: 1300, currency: "monedas", colorHex: "#ff5a1f", description: "Aún caliente al tacto." },
+  { id: "gol_erupcion", slot: "explosionGol", name: "Erupción", rarity: "legendario", price: 100, currency: "diamantes", colorHex: "#ff5500", description: "El campo entero tiembla al marcar." },
+
+  // Objetos exclusivos del Reino Helado
+  { id: "color_escarcha", slot: "color", name: "Escarcha Azul", rarity: "pocoComun", price: 500, currency: "monedas", colorHex: "#cdeeff", description: "Frío al tacto, brillante a la vista." },
+  { id: "balon_nieve", slot: "balon", name: "Bola de Nieve", rarity: "raro", price: 900, currency: "monedas", colorHex: "#eaf9ff", description: "Deja un rastro helado." },
+  { id: "bocina_viento", slot: "bocina", name: "Viento Helado", rarity: "pocoComun", price: 350, currency: "monedas", description: "El aullido del viento ártico." },
+
+  // Objetos exclusivos de las Islas Flotantes
+  { id: "color_cielo", slot: "color", name: "Cielo Infinito", rarity: "raro", price: 1200, currency: "monedas", colorHex: "#7fd1ff", description: "El azul interminable de las alturas." },
+  { id: "antena_pluma", slot: "antena", name: "Pluma de Viento", rarity: "raro", price: 700, currency: "monedas", colorHex: "#ffffff", description: "Ligera como una pluma." },
+  { id: "estela_nube", slot: "estela", name: "Estela de Nube", rarity: "epico", price: 60, currency: "diamantes", colorHex: "#ffffff", description: "Dejas nubes a tu paso." },
+
+  // Objetos exclusivos del Laboratorio Tecnológico
+  { id: "color_plasma", slot: "color", name: "Plasma Neón", rarity: "epico", price: 2300, currency: "monedas", colorHex: "#4dffe0", description: "Energía pura contenida en la pintura." },
+  { id: "turbo_reactor", slot: "turbo", name: "Reactor Cuántico", rarity: "legendario", price: 85, currency: "diamantes", colorHex: "#4dffe0", description: "Tecnología experimental de propulsión." },
+  { id: "bocina_robot", slot: "bocina", name: "Alarma de Robot", rarity: "raro", price: 750, currency: "monedas", description: "Bip bip. Alerta activada." },
+
+  // Objetos exclusivos del Reino Celestial
+  { id: "gol_bendicion", slot: "explosionGol", name: "Bendición Celestial", rarity: "divino", price: 350, currency: "diamantes", colorHex: "#fff2c2", description: "El cielo entero celebra tu gol." },
+  { id: "estela_celestial", slot: "estela", name: "Estela Celestial", rarity: "divino", price: 250, currency: "diamantes", colorHex: "#ffe9a8", description: "Un rastro de luz dorada." },
 ];
 
 export function itemsBySlot(slot: ItemSlot): ItemDef[] {

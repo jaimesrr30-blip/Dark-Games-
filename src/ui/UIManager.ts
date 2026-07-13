@@ -4,11 +4,12 @@ import type { GameState } from "../state/GameState";
 import { xpForLevel } from "../state/GameState";
 import { RARITIES, type Rarity } from "../data/rarity";
 import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
+import { shopCatalog } from "../data/shops";
 import { MISSIONS, type MissionType } from "../data/missions";
 import { STAGES, STAGE_ORDER, type StageId } from "../data/stages";
-import { NPCS } from "../data/npcs";
+import { NPCS, type NpcDef } from "../data/npcs";
 import { CHESTS, PET_SPAWNS } from "../data/spawns";
-import { PET_ARCHETYPES } from "../data/pets";
+import { PET_ARCHETYPES, petSellPrice } from "../data/pets";
 import { visualFromState } from "../entities/carVisual";
 import type { Stage2D } from "../stage/Stage2D";
 
@@ -34,6 +35,7 @@ export class UIManager {
   gs: GameState;
   garagePreview: GaragePreview2D | null = null;
   private currentMissionTab: MissionType = "principal";
+  private currentMissionStage: StageId | "all" = "all";
   private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" = "cosmeticos";
   private currentGarageSlot: ItemSlot = "color";
   private minimapCtx: CanvasRenderingContext2D;
@@ -65,6 +67,14 @@ export class UIManager {
         btn.classList.add("active");
         this.renderMissionList();
       });
+    });
+
+    const stageFilter = qs<HTMLSelectElement>("#mission-stage-filter");
+    stageFilter.innerHTML =
+      `<option value="all">Todas las etapas</option>` + STAGE_ORDER.map((id) => `<option value="${id}">${STAGES[id].name}</option>`).join("");
+    stageFilter.addEventListener("change", () => {
+      this.currentMissionStage = stageFilter.value as StageId | "all";
+      this.renderMissionList();
     });
     document.querySelectorAll<HTMLElement>("[data-itab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -107,6 +117,40 @@ export class UIManager {
       if (!hasSave) return;
       menu.classList.add("hide");
       onContinue();
+    };
+  }
+
+  showIntroStory(onDone: () => void) {
+    const screen = qs("#intro-story");
+    const lines = [
+      "Hace mucho tiempo, ocho mundos vivían en equilibrio, cada uno gobernado por un gran luchador.",
+      "Un día, el equilibrio se rompió. Cada luchador se encerró en su mundo, protegido por guardianes y llaves imposibles de robar.",
+      "Tú eres un piloto más, con un coche sencillo y un sueño enorme: <b>recorrer los ocho mundos, reunir sus llaves y vencer a todos los luchadores.</b>",
+      "Se dice que quien lo consiga encontrará, en el último mundo, las piezas de una máquina capaz de viajar más allá de todo lo conocido...",
+      "Tu aventura empieza ahora.",
+    ];
+    const textEl = qs("#intro-story-text");
+    textEl.innerHTML = lines.map((l, i) => `<p style="animation-delay:${i * 1.1}s">${l}</p>`).join("");
+    const btn = qs<HTMLButtonElement>("#btn-intro-skip");
+    btn.style.animationDelay = `${lines.length * 1.1}s`;
+    screen.classList.add("show");
+    btn.onclick = () => {
+      screen.classList.remove("show");
+      onDone();
+    };
+  }
+
+  showEnding(onClose: () => void) {
+    const screen = qs("#ending-screen");
+    qs("#ending-text").innerHTML = `
+      <p>Con las 4 piezas reunidas y el motor arrancado del <b>Campeón Eterno</b>, tu cohete cobra vida.</p>
+      <p>Has recorrido los ocho mundos, reunido sus llaves y vencido a sus luchadores. Eres, oficialmente, <b>el mejor piloto del mundo.</b></p>
+      <p>Pero mientras el cohete se eleva sobre las nubes, algo se ve a lo lejos: un cielo lleno de puntos de luz, cada uno... un mundo entero.</p>
+      <p><b>El sistema solar te espera. Esto no ha hecho más que empezar.</b></p>`;
+    screen.classList.add("show");
+    qs<HTMLButtonElement>("#btn-ending-close").onclick = () => {
+      screen.classList.remove("show");
+      onClose();
     };
   }
 
@@ -309,13 +353,12 @@ export class UIManager {
       const isCurrent = this.gs.data.currentStage === id;
       const card = document.createElement("button");
       card.className = `pick-card stage-card interactive ${!unlocked ? "locked" : ""} ${isCurrent ? "selected" : ""} ${defeated ? "defeated" : ""}`;
-      const gate = id === "hub" ? null : this.gs.stageGateStatus(id);
+      const gate = id === "hub" ? null : this.gs.stageKeysStatus(id);
       let reqHtml = "";
       if (id === "hub") reqHtml = `<div class="pick-req ok">Plaza inicial</div>`;
       else if (defeated) reqHtml = `<div class="pick-req ok">Jefe derrotado ✓</div>`;
       else if (unlocked && gate) {
-        reqHtml = `<div class="pick-req ${gate.missionsOk ? "ok" : ""}">Misiones ${gate.completed}/${gate.required}</div>
-          <div class="pick-req ${gate.coinsOk ? "ok" : ""}">Monedas ${Math.floor(this.gs.data.monedas)}/${gate.requiredCoins}</div>`;
+        reqHtml = `<div class="pick-req ${gate.ready ? "ok" : ""}">🔑 Llaves ${gate.have}/${gate.required}</div>`;
       } else {
         reqHtml = `<div class="pick-req">Bloqueado</div>`;
       }
@@ -348,7 +391,12 @@ export class UIManager {
 
   private renderMissionList() {
     const list = qs("#mission-list");
-    const missions = MISSIONS.filter((m) => m.type === this.currentMissionTab && this.gs.isMissionAvailable(m));
+    const missions = MISSIONS.filter(
+      (m) =>
+        m.type === this.currentMissionTab &&
+        (this.currentMissionStage === "all" || m.stage === this.currentMissionStage) &&
+        this.gs.isMissionAvailable(m)
+    );
     if (missions.length === 0) {
       list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">Nada por aquí todavía. ¡Sigue explorando!</div>`;
       return;
@@ -544,15 +592,19 @@ export class UIManager {
   }
 
   // ---------- Tienda ----------
-  openShopModal(shopName: string) {
+  private currentShopId: string | null = null;
+
+  openShopModal(shopName: string, shopId: string) {
     qs("#modal-shop").classList.add("show");
     qs("#shop-title").textContent = shopName;
+    this.currentShopId = shopId;
     this.renderShopList();
   }
 
   private renderShopList() {
     const list = qs("#shop-list");
-    const items = ITEMS.filter((i) => !this.gs.ownsItem(i.id) && i.price > 0);
+    const catalog = shopCatalog(this.currentShopId ?? "");
+    const items = ITEMS.filter((i) => catalog.includes(i.id) && !this.gs.ownsItem(i.id));
     if (items.length === 0) {
       list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">¡Ya tienes todo lo disponible aquí!</div>`;
       return;
@@ -583,6 +635,78 @@ export class UIManager {
         }
       });
     });
+  }
+
+  // ---------- Negociación con guardianes ----------
+  openGuardianModal(npc: NpcDef, onAction: (action: "pay" | "match" | "leave") => void) {
+    const g = npc.guardian!;
+    qs("#modal-guardian").classList.add("show");
+    qs("#guardian-title").textContent = npc.name;
+    qs("#guardian-text").textContent = `Puedo darte mi llave si me pagas ${g.priceCoins} monedas, o si me ganas un partido. Tú decides.`;
+    qs("#guardian-pay-label").textContent = `Pagar ${g.priceCoins} monedas`;
+    const payBtn = qs<HTMLButtonElement>("#btn-guardian-pay");
+    payBtn.disabled = !this.gs.canAfford(g.priceCoins, "monedas");
+    payBtn.onclick = () => {
+      qs("#modal-guardian").classList.remove("show");
+      onAction("pay");
+    };
+    qs<HTMLButtonElement>("#btn-guardian-match").onclick = () => {
+      qs("#modal-guardian").classList.remove("show");
+      onAction("match");
+    };
+    qs<HTMLButtonElement>("#btn-guardian-leave").onclick = () => {
+      qs("#modal-guardian").classList.remove("show");
+      onAction("leave");
+    };
+  }
+
+  // ---------- Venta de mascotas ----------
+  openPetSellModal(npcName: string, onSell: (uid: string) => void) {
+    qs("#modal-sellpet").classList.add("show");
+    qs("#sellpet-title").textContent = npcName;
+    this.renderSellPetList(onSell);
+  }
+
+  private renderSellPetList(onSell: (uid: string) => void) {
+    const list = qs("#sellpet-list");
+    if (this.gs.data.pets.length === 0) {
+      list.innerHTML = `<div style="color:var(--text-dim);padding:20px;text-align:center;">No tienes mascotas para vender todavía.</div>`;
+      return;
+    }
+    list.innerHTML = this.gs.data.pets
+      .map((p) => {
+        const arche = PET_ARCHETYPES.find((a) => a.id === p.archetypeId);
+        const price = petSellPrice(p);
+        return `
+        <div class="item-card">
+          <div class="item-swatch" style="background:${RARITIES[p.rarity].color};"></div>
+          <div class="item-info">
+            <div class="item-name">${arche?.name ?? p.archetypeId} <span class="rarity-tag r-${p.rarity}">${RARITIES[p.rarity].label}</span></div>
+            <div class="item-desc">${arche?.description ?? ""}</div>
+          </div>
+          <div class="item-actions">
+            <span class="price-tag">${price} monedas</span>
+            <button class="btn-arrow small gold interactive" data-sell="${p.uid}">Vender</button>
+          </div>
+        </div>`;
+      })
+      .join("");
+    list.querySelectorAll<HTMLElement>("[data-sell]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        onSell(btn.dataset.sell!);
+        this.renderSellPetList(onSell);
+      });
+    });
+  }
+
+  // ---------- Interior secreto ----------
+  hideWorldMenus() {
+    qs("#hud-menu-buttons").classList.add("hidden");
+    qs("#control-hint").classList.add("hidden");
+  }
+  showWorldMenus() {
+    qs("#hud-menu-buttons").classList.remove("hidden");
+    qs("#control-hint").classList.remove("hidden");
   }
 
   // ---------- Partido ----------

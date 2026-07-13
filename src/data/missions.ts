@@ -1,4 +1,6 @@
-import type { StageId } from "./stages";
+import { STAGES, type StageId } from "./stages";
+import { NPCS } from "./npcs";
+import { SECRET_DOORS } from "./spawns";
 
 export type MissionType = "principal" | "secundaria" | "especial" | "oculta";
 export type MissionObjectiveType =
@@ -7,7 +9,12 @@ export type MissionObjectiveType =
   | "derrotarJefe"
   | "recogerCofres"
   | "recogerMascotas"
-  | "marcarGoles";
+  | "marcarGoles"
+  | "obtenerLlave"
+  | "recogerBotones"
+  | "venderMascota"
+  | "descubrirSecreto"
+  | "recogerPiezas";
 
 export interface MissionObjective {
   type: MissionObjectiveType;
@@ -29,8 +36,6 @@ export interface MissionDef {
   rewardXp: number;
   requires?: string[];
   hidden?: boolean;
-  // cuenta para el requisito de "3 misiones" que desbloquea la puerta del jefe de la etapa
-  countsForStageGate?: boolean;
 }
 
 export const MISSIONS: MissionDef[] = [
@@ -73,7 +78,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 300,
     rewardDiamantes: 10,
     rewardXp: 120,
-    countsForStageGate: true,
   },
   {
     id: "s_goles_ciudad",
@@ -86,7 +90,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 300,
     rewardDiamantes: 10,
     rewardXp: 120,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_ciudad",
@@ -99,7 +102,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 300,
     rewardDiamantes: 10,
     rewardXp: 120,
-    countsForStageGate: true,
   },
   {
     id: "m_ciudad_jefe",
@@ -126,7 +128,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 400,
     rewardDiamantes: 12,
     rewardXp: 160,
-    countsForStageGate: true,
   },
   {
     id: "s_goles_desierto",
@@ -139,7 +140,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 400,
     rewardDiamantes: 12,
     rewardXp: 160,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_desierto",
@@ -152,7 +152,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 400,
     rewardDiamantes: 12,
     rewardXp: 160,
-    countsForStageGate: true,
   },
   {
     id: "m_desierto_jefe",
@@ -179,7 +178,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 500,
     rewardDiamantes: 15,
     rewardXp: 200,
-    countsForStageGate: true,
   },
   {
     id: "s_cofres_bosque",
@@ -192,7 +190,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 500,
     rewardDiamantes: 15,
     rewardXp: 200,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_bosque",
@@ -205,7 +202,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 500,
     rewardDiamantes: 15,
     rewardXp: 200,
-    countsForStageGate: true,
   },
   {
     id: "m_bosque_jefe",
@@ -232,7 +228,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 600,
     rewardDiamantes: 18,
     rewardXp: 250,
-    countsForStageGate: true,
   },
   {
     id: "s_cofres_volcan",
@@ -245,7 +240,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 600,
     rewardDiamantes: 18,
     rewardXp: 250,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_volcan",
@@ -258,7 +252,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 600,
     rewardDiamantes: 18,
     rewardXp: 250,
-    countsForStageGate: true,
   },
   {
     id: "m_volcan_jefe",
@@ -285,7 +278,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 700,
     rewardDiamantes: 20,
     rewardXp: 280,
-    countsForStageGate: true,
   },
   {
     id: "s_goles_helado",
@@ -298,7 +290,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 700,
     rewardDiamantes: 20,
     rewardXp: 280,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_helado",
@@ -311,7 +302,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 700,
     rewardDiamantes: 20,
     rewardXp: 280,
-    countsForStageGate: true,
   },
   {
     id: "m_helado_jefe",
@@ -338,7 +328,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 800,
     rewardDiamantes: 22,
     rewardXp: 320,
-    countsForStageGate: true,
   },
   {
     id: "s_cofres_islas",
@@ -351,7 +340,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 800,
     rewardDiamantes: 22,
     rewardXp: 320,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_islas",
@@ -364,7 +352,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 800,
     rewardDiamantes: 22,
     rewardXp: 320,
-    countsForStageGate: true,
   },
   {
     id: "m_islas_jefe",
@@ -391,7 +378,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 900,
     rewardDiamantes: 25,
     rewardXp: 360,
-    countsForStageGate: true,
   },
   {
     id: "s_cofres_laboratorio",
@@ -404,7 +390,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 900,
     rewardDiamantes: 25,
     rewardXp: 360,
-    countsForStageGate: true,
   },
   {
     id: "s_partido_laboratorio",
@@ -417,7 +402,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 900,
     rewardDiamantes: 25,
     rewardXp: 360,
-    countsForStageGate: true,
   },
   {
     id: "m_laboratorio_jefe",
@@ -444,7 +428,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1200,
     rewardDiamantes: 30,
     rewardXp: 400,
-    countsForStageGate: true,
   },
   {
     id: "s_final_2",
@@ -457,7 +440,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1200,
     rewardDiamantes: 30,
     rewardXp: 400,
-    countsForStageGate: true,
   },
   {
     id: "s_final_3",
@@ -470,7 +452,6 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1200,
     rewardDiamantes: 30,
     rewardXp: 400,
-    countsForStageGate: true,
   },
   {
     id: "m_final",
@@ -498,16 +479,103 @@ export const MISSIONS: MissionDef[] = [
     rewardDiamantes: 40,
     rewardXp: 400,
   },
+
+  // ---------- El secreto de la pirámide (Desierto) ----------
+  {
+    id: "s_piramide_desierto",
+    type: "secundaria",
+    stage: "desierto",
+    title: "El Secreto de la Pirámide",
+    giver: "custodio_piramide",
+    description: "Encuentra los 3 botones de piedra escondidos por el Desierto Solar y llévalos a la pirámide.",
+    objectives: [{ type: "recogerBotones", target: "desierto", count: 3, description: "Encuentra los 3 botones de piedra" }],
+    rewardMonedas: 500,
+    rewardDiamantes: 20,
+    rewardXp: 300,
+  },
+
+  // ---------- El cohete (Reino Celestial) ----------
+  {
+    id: "s_piezas_cohete",
+    type: "secundaria",
+    stage: "celestial",
+    title: "Piezas del Cohete",
+    giver: "guardian_celestial",
+    description: "Reúne las 4 piezas de un misterioso cohete escondidas por el Reino Celestial.",
+    objectives: [{ type: "recogerPiezas", target: "celestial", count: 4, description: "Encuentra las 4 piezas del cohete" }],
+    rewardMonedas: 2000,
+    rewardDiamantes: 60,
+    rewardXp: 800,
+  },
 ];
+
+// Una misión por cada guardián: conseguir su llave (pagando, ganando un partido,
+// o resolviendo su desafío especial) cuenta como una misión más en el registro.
+function guardianKeyMissions(): MissionDef[] {
+  return NPCS.filter((n) => n.role === "guardian" && n.guardian).map((n) => {
+    const order = STAGES[n.stage].order;
+    const def: MissionDef = {
+      id: `key_mission_${n.id}`,
+      type: "secundaria",
+      stage: n.stage,
+      title: `La llave de ${n.name}`,
+      giver: n.id,
+      description: `Consigue la llave que guarda ${n.name}.`,
+      objectives: [{ type: "obtenerLlave", target: n.guardian!.keyId, count: 1, description: `Consigue la llave de ${n.name}` }],
+      rewardMonedas: 80 + order * 40,
+      rewardDiamantes: 2 + order,
+      rewardXp: 60 + order * 20,
+    };
+    return def;
+  });
+}
+
+// Una misión por cada comprador de mascotas: véndele al menos una.
+function petSellMissions(): MissionDef[] {
+  return NPCS.filter((n) => n.role === "mascotas").map((n) => {
+    const def: MissionDef = {
+      id: `sell_mission_${n.id}`,
+      type: "secundaria",
+      stage: n.stage,
+      title: `Trato con ${n.name}`,
+      giver: n.id,
+      description: `${n.name} paga bien por mascotas. Véndele una.`,
+      objectives: [{ type: "venderMascota", target: "any", count: 1, description: "Vende una mascota" }],
+      rewardMonedas: 150,
+      rewardDiamantes: 5,
+      rewardXp: 100,
+    };
+    return def;
+  });
+}
+
+// Una misión oculta por cada puerta secreta: el id de la misión coincide con el
+// id de la puerta para que se revele en el registro justo al descubrirla.
+function secretDoorMissions(): MissionDef[] {
+  return SECRET_DOORS.map((d) => {
+    const def: MissionDef = {
+      id: d.id,
+      type: "oculta",
+      stage: d.stage,
+      title: "Puerta Misteriosa",
+      giver: "sistema",
+      description: "Alguien escondió algo valioso tras una puerta secreta en esta etapa.",
+      objectives: [{ type: "descubrirSecreto", target: d.id, count: 1, description: "Descubre el secreto" }],
+      rewardMonedas: d.coins,
+      rewardDiamantes: 10,
+      rewardXp: 150,
+      hidden: true,
+    };
+    return def;
+  });
+}
+
+MISSIONS.push(...guardianKeyMissions(), ...petSellMissions(), ...secretDoorMissions());
 
 export function missionById(id: string): MissionDef | undefined {
   return MISSIONS.find((m) => m.id === id);
 }
 
-export function stageGateMissions(stage: StageId): MissionDef[] {
-  return MISSIONS.filter((m) => m.stage === stage && m.countsForStageGate);
-}
-
-export function stageBossMission(stage: StageId): MissionDef | undefined {
-  return MISSIONS.find((m) => m.stage === stage && m.type === "principal" && m.objectives[0]?.type === "derrotarJefe");
+export function missionsForStage(stage: StageId): MissionDef[] {
+  return MISSIONS.filter((m) => m.stage === stage);
 }

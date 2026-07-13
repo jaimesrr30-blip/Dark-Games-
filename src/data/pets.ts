@@ -50,6 +50,12 @@ export function petPowerValue(pet: OwnedPet): number {
   return base * mult;
 }
 
+// Precio de venta a los compradores de mascotas: cuanto mayor la rareza, mucho más paga.
+export function petSellPrice(pet: OwnedPet): number {
+  const order = RARITIES[pet.rarity].order;
+  return Math.round(70 * Math.pow(order, 1.6));
+}
+
 let petUidCounter = 1;
 export function rollNewPet(luckBonus = 0, forcedArchetype?: string): OwnedPet {
   const archetype = forcedArchetype ?? PET_ARCHETYPES[Math.floor(Math.random() * PET_ARCHETYPES.length)].id;

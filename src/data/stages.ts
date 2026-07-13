@@ -28,8 +28,6 @@ export interface StageDef {
   propColor: string;
   bossName: string;
   bossTitle: string;
-  requiredMissions: number;
-  requiredCoins: number;
 }
 
 const W = 2200;
@@ -51,8 +49,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#2c3648",
     bossName: "",
     bossTitle: "",
-    requiredMissions: 0,
-    requiredCoins: 0,
   },
   ciudad: {
     id: "ciudad",
@@ -69,8 +65,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#3a2f66",
     bossName: "Neo-Piloto X9",
     bossTitle: "El Campeón de Neón",
-    requiredMissions: 3,
-    requiredCoins: 800,
   },
   desierto: {
     id: "desierto",
@@ -87,8 +81,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#3d7a4a",
     bossName: "Khamsin",
     bossTitle: "Señor de las Dunas",
-    requiredMissions: 3,
-    requiredCoins: 1400,
   },
   bosque: {
     id: "bosque",
@@ -105,8 +97,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#1c7a3e",
     bossName: "Sylvara",
     bossTitle: "Guardiana del Bosque",
-    requiredMissions: 3,
-    requiredCoins: 2000,
   },
   volcan: {
     id: "volcan",
@@ -123,8 +113,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#661a0a",
     bossName: "Ignarok",
     bossTitle: "El Corazón de Magma",
-    requiredMissions: 3,
-    requiredCoins: 2700,
   },
   helado: {
     id: "helado",
@@ -141,8 +129,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#ffffff",
     bossName: "Frosthelm",
     bossTitle: "El Rey de Escarcha",
-    requiredMissions: 3,
-    requiredCoins: 3500,
   },
   islas: {
     id: "islas",
@@ -159,8 +145,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#ffffff",
     bossName: "Aeris",
     bossTitle: "Señora del Viento",
-    requiredMissions: 3,
-    requiredCoins: 4400,
   },
   laboratorio: {
     id: "laboratorio",
@@ -177,8 +161,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#3a4a4a",
     bossName: "Unidad Ω",
     bossTitle: "Prototipo Fallido",
-    requiredMissions: 3,
-    requiredCoins: 5400,
   },
   celestial: {
     id: "celestial",
@@ -195,8 +177,6 @@ export const STAGES: Record<StageId, StageDef> = {
     propColor: "#fff8e0",
     bossName: "El Campeón Eterno",
     bossTitle: "Maestro de Todos los Pilotos",
-    requiredMissions: 3,
-    requiredCoins: 6500,
   },
 };
 

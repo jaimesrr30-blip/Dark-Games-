@@ -47,8 +47,20 @@ export class Match2D {
   fieldName: string;
   private goalPause = 0;
   private touches = 0;
+  private goalFxT = 0;
+  private goalFxX = 0;
+  private goalFxColor: string;
 
-  constructor(private gs: GameState, private input: Input, public mode: MatchMode, public stage?: StageId) {
+  skill: number;
+
+  constructor(
+    private gs: GameState,
+    private input: Input,
+    public mode: MatchMode,
+    public stage?: StageId,
+    skill?: number,
+    opponentColor?: string
+  ) {
     if (mode === "boss" && stage) {
       this.width = 2000;
       this.height = 1300;
@@ -59,6 +71,7 @@ export class Match2D {
       this.fieldName = stage ? `Campo de ${STAGES[stage].name}` : "Campo de Entrenamiento";
     }
     this.goalGapY = [-140, 140];
+    this.skill = skill ?? (mode === "boss" ? 0.85 : 0.5);
 
     if (mode === "boss" && stage) {
       this.walls = generateMaze(hashString(stage), this.width / 2, this.height / 2);
@@ -68,7 +81,7 @@ export class Match2D {
     this.player = new CarBody2D(visualFromState(gs));
     this.player.setPosition(-this.width / 2 + 120, 0);
 
-    const bossColor = mode === "boss" ? "#ff2c2c" : "#ff8a3d";
+    const bossColor = opponentColor ?? (mode === "boss" ? "#ff2c2c" : "#ff8a3d");
     this.opponent = new CarBody2D({ bodyColor: bossColor, borderColor: "#3a0a0a", turboColor: "#ffcf6b", antennaColor: mode === "boss" ? "#fff" : null });
     this.opponent.setPosition(this.width / 2 - 120, 0);
     if (mode === "boss") this.opponent.size = 42;
@@ -76,6 +89,9 @@ export class Match2D {
     const balon = getItem(gs.data.equipped.balon);
     this.ball = new Ball2D(balon?.colorHex ?? "#ffffff");
     this.ball.reset(0, 0);
+
+    const explosion = getItem(gs.data.equipped.explosionGol);
+    this.goalFxColor = explosion?.colorHex ?? "#ffcc33";
   }
 
   private generateCoins(stage: StageId): Coin[] {
@@ -121,6 +137,7 @@ export class Match2D {
   }
 
   update(dt: number) {
+    if (this.goalFxT > 0) this.goalFxT = Math.max(0, this.goalFxT - dt);
     if (this.finished) return;
     if (this.goalPause > 0) {
       this.goalPause -= dt;
@@ -137,7 +154,8 @@ export class Match2D {
 
     this.player.update(dt, { x: this.input.moveX, y: this.input.moveY, boost: this.input.boost }, bounds);
     const aiInput = this.computeAiInput();
-    this.opponent.update(dt, aiInput, bounds, this.mode === "boss" ? 1.05 : 0.92);
+    const speedMult = 0.72 + this.skill * 0.55;
+    this.opponent.update(dt, aiInput, bounds, speedMult);
 
     this.resolveCarWalls(this.player);
     this.resolveCarWalls(this.opponent);
@@ -175,7 +193,7 @@ export class Match2D {
     const dx = targetX - this.opponent.x;
     const dy = targetY - this.opponent.y;
     const len = Math.hypot(dx, dy) || 1;
-    const boost = dist < 260 && Math.random() < 0.02;
+    const boost = dist < 260 && Math.random() < 0.01 + this.skill * 0.06;
     return { x: dx / len, y: dy / len, boost };
   }
 
@@ -260,6 +278,8 @@ export class Match2D {
     } else {
       this.scoreB++;
     }
+    this.goalFxT = 1.1;
+    this.goalFxX = scorer === "player" ? this.width / 2 : -this.width / 2;
     this.ball.reset(0, 0);
     this.player.setPosition(-this.width / 2 + 120, 0);
     this.opponent.setPosition(this.width / 2 - 120, 0);
@@ -367,6 +387,48 @@ export class Match2D {
     this.ball.draw(ctx, camera);
     this.opponent.draw(ctx, camera, this.opponent.speed > 20);
     this.player.draw(ctx, camera, this.player.speed > 20);
+
+    if (this.goalFxT > 0) this.drawGoalExplosion(ctx, camera);
+  }
+
+  private drawGoalExplosion(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    const t = 1 - this.goalFxT / 1.1; // 0 al empezar, 1 al terminar
+    const [sx, sy] = camera.worldToScreen(this.goalFxX, 0);
+    ctx.save();
+
+    // destello de fondo
+    ctx.globalAlpha = Math.max(0, 1 - t * 1.6);
+    ctx.fillStyle = this.goalFxColor;
+    ctx.globalCompositeOperation = "lighter";
+    ctx.beginPath();
+    ctx.arc(sx, sy, 40 + t * 260, 0, Math.PI * 2);
+    ctx.fill();
+
+    // partículas radiales
+    const count = 16;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + t * 1.5;
+      const dist = t * 220;
+      const px = sx + Math.cos(angle) * dist;
+      const py = sy + Math.sin(angle) * dist;
+      ctx.globalAlpha = Math.max(0, 1 - t);
+      ctx.fillStyle = this.goalFxColor;
+      ctx.beginPath();
+      ctx.arc(px, py, 6 * (1 - t) + 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
+    ctx.font = "900 34px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = this.goalFxColor;
+    ctx.lineWidth = 4;
+    ctx.strokeText("¡GOL!", sx, sy - 60 - t * 20);
+    ctx.fillText("¡GOL!", sx, sy - 60 - t * 20);
+    ctx.restore();
   }
 
   private drawGoalBracket(ctx: CanvasRenderingContext2D, camera: Camera2D, worldX: number, color: string) {

@@ -11,11 +11,27 @@ interface Prop {
   variant: number;
 }
 
+interface Landmark {
+  stage: StageId;
+  pos: [number, number];
+  type: "fogata" | "fuente" | "estatua";
+}
+
+// Decoraciones fijas (no aleatorias) que dan personalidad a puntos concretos del mapa:
+// una fogata junto al Druida Finn, una fuente en la Plaza Central, estatuas en las
+// grandes plazas de Ciudad Futurista y el Reino Celestial.
+const LANDMARKS: Landmark[] = [
+  { stage: "hub", pos: [0, 0], type: "fuente" },
+  { stage: "bosque", pos: [-268, 176], type: "fogata" },
+  { stage: "ciudad", pos: [0, 0], type: "estatua" },
+  { stage: "celestial", pos: [0, 0], type: "estatua" },
+];
+
 function buildProps(stage: StageDef): Prop[] {
-  if (stage.id === "hub") return [];
   const rng = mulberry32(hashString(stage.id + "_props"));
   const props: Prop[] = [];
-  const count = 90;
+  const baseArea = 2200 * 1600;
+  const count = stage.id === "hub" ? Math.round(55 * ((stage.width * stage.height) / baseArea)) : 90;
   for (let i = 0; i < count; i++) {
     const x = (rng() - 0.5) * stage.width * 0.94;
     const y = (rng() - 0.5) * stage.height * 0.94;
@@ -145,9 +161,94 @@ function drawProp(ctx: CanvasRenderingContext2D, type: PropType, color: string, 
   ctx.restore();
 }
 
+function drawLandmark(ctx: CanvasRenderingContext2D, type: Landmark["type"], t: number) {
+  ctx.save();
+  switch (type) {
+    case "fuente": {
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 60, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#8892a8";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 52, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const shimmer = 0.6 + Math.sin(t * 2) * 0.15;
+      ctx.fillStyle = `rgba(120,200,255,${shimmer})`;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 42, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#6a7690";
+      roundRect(ctx, -8, -46, 16, 44, 4);
+      ctx.fill();
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + t * 1.5;
+        const spray = 6 + Math.sin(t * 4 + i) * 3;
+        ctx.fillStyle = "rgba(180,225,255,0.7)";
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * spray, -46 - Math.abs(Math.sin(t * 3 + i)) * 10, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "fogata": {
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.beginPath();
+      ctx.ellipse(0, 14, 26, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#5a3a1e";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-16, 10);
+      ctx.lineTo(16, -6);
+      ctx.moveTo(16, 10);
+      ctx.lineTo(-16, -6);
+      ctx.stroke();
+      const flicker = 0.85 + Math.sin(t * 9) * 0.15;
+      const grad = ctx.createRadialGradient(0, -6, 2, 0, -6, 26 * flicker);
+      grad.addColorStop(0, "rgba(255,240,180,0.9)");
+      grad.addColorStop(0.5, "rgba(255,140,40,0.55)");
+      grad.addColorStop(1, "rgba(255,80,20,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, -6, 26 * flicker, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffcf6b";
+      ctx.beginPath();
+      ctx.moveTo(0, -10 - Math.sin(t * 8) * 4);
+      ctx.quadraticCurveTo(9, -2, 0, 10);
+      ctx.quadraticCurveTo(-9, -2, 0, -10 - Math.sin(t * 8) * 4);
+      ctx.fill();
+      break;
+    }
+    case "estatua": {
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath();
+      ctx.ellipse(0, 44, 30, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#7a7f8c";
+      roundRect(ctx, -30, 20, 60, 20, 4);
+      ctx.fill();
+      ctx.fillStyle = "#9aa0ac";
+      roundRect(ctx, -16, -30, 32, 52, 5);
+      ctx.fill();
+      ctx.fillStyle = "#c7ccd6";
+      roundRect(ctx, -10, -46, 20, 18, 4);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.25)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, -16, -30, 32, 52, 5);
+      ctx.stroke();
+      break;
+    }
+  }
+  ctx.restore();
+}
+
 export class Stage2D {
   def: StageDef;
   props: Prop[];
+  landmarks: Landmark[];
   spawnPoint: [number, number];
   bossGatePos: [number, number];
   trainingFieldPos: [number, number];
@@ -156,6 +257,7 @@ export class Stage2D {
   constructor(id: StageId) {
     this.def = STAGES[id];
     this.props = buildProps(this.def);
+    this.landmarks = LANDMARKS.filter((l) => l.stage === id);
     this.spawnPoint = stageSpawnPoint(id);
     this.bossGatePos = stageBossGate(id);
     this.trainingFieldPos = stageTrainingField(id);
@@ -210,6 +312,17 @@ export class Stage2D {
       ctx.save();
       ctx.translate(sx, sy);
       drawProp(ctx, this.def.propType, this.def.propColor, p.scale, p.variant);
+      ctx.restore();
+    }
+  }
+
+  drawLandmarks(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    for (const l of this.landmarks) {
+      if (!camera.isVisible(l.pos[0], l.pos[1], 90)) continue;
+      const [sx, sy] = camera.worldToScreen(l.pos[0], l.pos[1]);
+      ctx.save();
+      ctx.translate(sx, sy);
+      drawLandmark(ctx, l.type, this.t);
       ctx.restore();
     }
   }

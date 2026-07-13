@@ -88,7 +88,37 @@ export const UI_TEMPLATE = `
       <button class="tab-btn interactive" data-mtab="secundaria">Secundarias</button>
       <button class="tab-btn interactive" data-mtab="especial">Especiales</button>
     </div>
+    <select id="mission-stage-filter" class="interactive"></select>
     <div class="modal-body" id="mission-list"></div>
+  </div>
+</div>
+
+<!-- Negociación con guardián -->
+<div class="modal-backdrop interactive" id="modal-guardian">
+  <div class="modal-window panel" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title" id="guardian-title">Guardián</div>
+      <button class="modal-close interactive" data-close="modal-guardian">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="guardian-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:18px;"></p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-arrow gold interactive" id="btn-guardian-pay"><span id="guardian-pay-label">Pagar</span> <span class="arrow-icon">➤</span></button>
+        <button class="btn-arrow primary interactive" id="btn-guardian-match">Jugar un partido por la llave <span class="arrow-icon">➤</span></button>
+        <button class="btn-arrow interactive" id="btn-guardian-leave">Ahora no, volveré <span class="arrow-icon">➤</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comprador de mascotas -->
+<div class="modal-backdrop interactive" id="modal-sellpet">
+  <div class="modal-window panel">
+    <div class="modal-header">
+      <div class="modal-title" id="sellpet-title">Comprador de Mascotas</div>
+      <button class="modal-close interactive" data-close="modal-sellpet">✕</button>
+    </div>
+    <div class="modal-body" id="sellpet-list"></div>
   </div>
 </div>
 
@@ -170,5 +200,16 @@ export const UI_TEMPLATE = `
   <div class="boss-title" id="boss-intro-title">Título del jefe</div>
   <div id="boss-intro-requirements"></div>
   <button class="btn-arrow gold interactive" id="btn-boss-start">Comenzar Duelo <span class="arrow-icon">➤</span></button>
+</div>
+
+<div id="intro-story">
+  <div id="intro-story-text"></div>
+  <button class="btn-arrow primary interactive" id="btn-intro-skip">Comenzar la aventura <span class="arrow-icon">➤</span></button>
+</div>
+
+<div id="ending-screen">
+  <div id="ending-rocket"></div>
+  <div id="ending-text"></div>
+  <button class="btn-arrow gold interactive" id="btn-ending-close">Seguir explorando <span class="arrow-icon">➤</span></button>
 </div>
 `;

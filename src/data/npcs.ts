@@ -1,18 +1,44 @@
 import type { StageId } from "./stages";
 
+export type NpcRole = "mision" | "tienda" | "garaje" | "historia" | "mascotas" | "guardian";
+
+export interface GuardianInfo {
+  keyId: string;
+  priceCoins: number;
+  difficulty: number; // 0..1, escala la IA del partido de desafío
+  winLine: string;
+  payLine: string;
+  noMoneyLine: string;
+  alreadyLine: string;
+}
+
 export interface NpcDef {
   id: string;
   name: string;
   stage: StageId;
   pos: [number, number];
   color: string;
-  role: "mision" | "tienda" | "garaje" | "historia";
+  role: NpcRole;
   shopId?: string;
   dialogue: string[];
   missionIds?: string[];
+  guardian?: GuardianInfo;
+}
+
+function guardian(keyId: string, priceCoins: number, difficulty: number, flavor?: Partial<GuardianInfo>): GuardianInfo {
+  return {
+    keyId,
+    priceCoins,
+    difficulty,
+    winLine: flavor?.winLine ?? "¡Bien jugado! Un trato es un trato. Aquí tienes la llave.",
+    payLine: flavor?.payLine ?? "Trato hecho. Aquí tienes tu llave.",
+    noMoneyLine: flavor?.noMoneyLine ?? "No tienes suficiente. Vuelve cuando reúnas más monedas.",
+    alreadyLine: flavor?.alreadyLine ?? "Ya tienes mi llave. ¡Buena suerte con las otras!",
+  };
 }
 
 export const NPCS: NpcDef[] = [
+  // ---------------- Plaza Central (hub) ----------------
   {
     id: "mecanico_rex",
     name: "Mecánico Rex",
@@ -34,12 +60,24 @@ export const NPCS: NpcDef[] = [
     pos: [140, -80],
     color: "#3d8bff",
     role: "mision",
-    dialogue: [
-      "El campo de entrenamiento te espera. ¿Listo para tu primer partido?",
-      "Recuerda: Espacio es turbo. ¡Aprovéchalo bien!",
-    ],
+    dialogue: ["El campo de entrenamiento te espera. ¿Listo para tu primer partido?", "Recuerda: Espacio es turbo. ¡Aprovéchalo bien!"],
     missionIds: ["m_primer_partido"],
   },
+  {
+    id: "archivista_hub",
+    name: "Archivista Nima",
+    stage: "hub",
+    pos: [-280, -220],
+    color: "#c9a3ff",
+    role: "historia",
+    dialogue: [
+      "Dicen que hace mucho tiempo, ocho campeones gobernaban ocho mundos distintos.",
+      "Solo quien reúna las llaves de cada mundo y venza a sus luchadores podrá enfrentarse al Campeón Eterno.",
+      "Y dicen también... que en el último mundo se esconde algo capaz de llevarte más allá de todo lo conocido.",
+    ],
+  },
+
+  // ---------------- Ciudad Futurista ----------------
   {
     id: "vendedor_neo",
     name: "Vendedor Neo",
@@ -48,10 +86,7 @@ export const NPCS: NpcDef[] = [
     color: "#ff2fd1",
     role: "tienda",
     shopId: "shop_ciudad",
-    dialogue: [
-      "Bienvenido a la Ciudad Futurista. Aquí encontrarás las mejores piezas de neón.",
-      "También hay cofres escondidos entre los callejones... si tienes buen ojo.",
-    ],
+    dialogue: ["Bienvenido a la Ciudad Futurista. Aquí encontrarás las mejores piezas de neón.", "También hay cofres escondidos entre los callejones... si tienes buen ojo."],
     missionIds: ["s_cofres_ciudad"],
   },
   {
@@ -61,9 +96,50 @@ export const NPCS: NpcDef[] = [
     pos: [-300, -200],
     color: "#66ccff",
     role: "mision",
-    dialogue: ["Neo-Piloto X9 controla el estadio galáctico. Completa tus misiones y reúne monedas para desafiarlo."],
+    dialogue: ["Neo-Piloto X9 controla el estadio galáctico. Demuestra tu valía por toda la ciudad."],
     missionIds: ["s_goles_ciudad"],
   },
+  {
+    id: "coleccionista_vex",
+    name: "Coleccionista Vex",
+    stage: "ciudad",
+    pos: [600, 420],
+    color: "#ff66cc",
+    role: "mascotas",
+    dialogue: ["Compro mascotas de cualquier rareza. Cuanto más rara, más pago.", "No juzgo, solo pago bien."],
+  },
+  {
+    id: "vigia_pixel",
+    name: "Vigía Pixel",
+    stage: "ciudad",
+    pos: [-620, 380],
+    color: "#00e5ff",
+    role: "guardian",
+    dialogue: ["Custodio la primera llave de Neo-Piloto X9. Nadie pasa sin ganársela."],
+    guardian: guardian("key_ciudad_1", 220, 0.35),
+  },
+  {
+    id: "guardian_circuito",
+    name: "Guardián Circuito",
+    stage: "ciudad",
+    pos: [640, -420],
+    color: "#7d5bff",
+    role: "guardian",
+    dialogue: ["Mi llave no se regala. O la ganas en la cancha, o la compras con monedas."],
+    guardian: guardian("key_ciudad_2", 260, 0.38),
+  },
+  {
+    id: "custodio_holograma",
+    name: "Custodio Holograma",
+    stage: "ciudad",
+    pos: [0, -680],
+    color: "#ff2fd1",
+    role: "guardian",
+    dialogue: ["Soy solo una proyección, pero mi llave es muy real."],
+    guardian: guardian("key_ciudad_3", 300, 0.4),
+  },
+
+  // ---------------- Desierto Solar ----------------
   {
     id: "comerciante_amir",
     name: "Comerciante Amir",
@@ -86,16 +162,58 @@ export const NPCS: NpcDef[] = [
     missionIds: ["s_cofres_desierto"],
   },
   {
+    id: "nomada_sahar",
+    name: "Nómada Sahar",
+    stage: "desierto",
+    pos: [640, 380],
+    color: "#e0b060",
+    role: "mascotas",
+    dialogue: ["Cruzo el desierto comprando criaturas extrañas. Muéstrame lo que has encontrado."],
+  },
+  {
+    id: "guardian_duna",
+    name: "Guardián de la Duna",
+    stage: "desierto",
+    pos: [-640, -380],
+    color: "#c98a3a",
+    role: "guardian",
+    dialogue: ["Mi llave descansa bajo la arena. Gánatela o cómprala, piloto."],
+    guardian: guardian("key_desierto_1", 380, 0.45),
+  },
+  {
+    id: "centinela_oasis",
+    name: "Centinela del Oasis",
+    stage: "desierto",
+    pos: [640, -420],
+    color: "#3fd1c0",
+    role: "guardian",
+    dialogue: ["El oasis solo se abre para quien demuestra fuerza o generosidad."],
+    guardian: guardian("key_desierto_2", 420, 0.48),
+  },
+  {
+    id: "custodio_piramide",
+    name: "Custodio de la Pirámide",
+    stage: "desierto",
+    pos: [420, -480],
+    color: "#ffcf6b",
+    role: "guardian",
+    dialogue: [
+      "Esta llave no se compra ni se gana en un partido.",
+      "Hay 3 botones de piedra escondidos por el desierto. Colócalos en la pirámide y ella se abrirá para ti.",
+    ],
+    missionIds: ["s_piramide_desierto"],
+    guardian: guardian("key_desierto_3", 0, 1, {}),
+  },
+
+  // ---------------- Bosque Mágico ----------------
+  {
     id: "druida_finn",
     name: "Druida Finn",
     stage: "bosque",
     pos: [-220, 140],
     color: "#4caf50",
     role: "mision",
-    dialogue: [
-      "Shh... escucha el bosque. Hay pequeñas criaturas escondidas entre los árboles.",
-      "Si encuentras alguna, se unirá a ti y te dará poder en los partidos.",
-    ],
+    dialogue: ["Shh... escucha el bosque. Hay pequeñas criaturas escondidas entre los árboles.", "Si encuentras alguna, se unirá a ti y te dará poder en los partidos."],
     missionIds: ["s_mascotas_bosque"],
   },
   {
@@ -108,6 +226,47 @@ export const NPCS: NpcDef[] = [
     shopId: "shop_bosque",
     dialogue: ["Aquí vendemos objetos hechos con materiales del bosque. Todo natural, todo mágico."],
   },
+  {
+    id: "susurro_bosque",
+    name: "Susurro del Bosque",
+    stage: "bosque",
+    pos: [620, 400],
+    color: "#7fcf7f",
+    role: "mascotas",
+    dialogue: ["El bosque cuida de sus criaturas... pero también paga bien por ellas."],
+  },
+  {
+    id: "guardian_roble",
+    name: "Guardián del Roble",
+    stage: "bosque",
+    pos: [-620, -380],
+    color: "#6b4423",
+    role: "guardian",
+    dialogue: ["Llevo cien años frente a este roble. Mi llave se ha ganado un poco de paciencia."],
+    guardian: guardian("key_bosque_1", 520, 0.53),
+  },
+  {
+    id: "centinela_luciernaga",
+    name: "Centinela Luciérnaga",
+    stage: "bosque",
+    pos: [640, -400],
+    color: "#e8ff6b",
+    role: "guardian",
+    dialogue: ["Brillo en la oscuridad para guiar a los pilotos dignos."],
+    guardian: guardian("key_bosque_2", 560, 0.56),
+  },
+  {
+    id: "custodio_fuente",
+    name: "Custodio de la Fuente",
+    stage: "bosque",
+    pos: [0, -680],
+    color: "#66ffe0",
+    role: "guardian",
+    dialogue: ["Esta fuente sella la última llave hacia Sylvara."],
+    guardian: guardian("key_bosque_3", 600, 0.58),
+  },
+
+  // ---------------- Zona Volcánica ----------------
   {
     id: "herrero_dorn",
     name: "Herrero Dorn",
@@ -129,6 +288,47 @@ export const NPCS: NpcDef[] = [
     missionIds: ["s_goles_volcan"],
   },
   {
+    id: "forjador_kael",
+    name: "Forjador Kael",
+    stage: "volcan",
+    pos: [620, 400],
+    color: "#ff7a3d",
+    role: "mascotas",
+    dialogue: ["Cambio monedas al rojo vivo por tus mascotas. ¿Trato?"],
+  },
+  {
+    id: "guardian_lava",
+    name: "Guardián de la Lava",
+    stage: "volcan",
+    pos: [-640, -400],
+    color: "#ff3300",
+    role: "guardian",
+    dialogue: ["Mi llave se templó en fuego. No es barata."],
+    guardian: guardian("key_volcan_1", 680, 0.62),
+  },
+  {
+    id: "centinela_ceniza",
+    name: "Centinela de Ceniza",
+    stage: "volcan",
+    pos: [640, -420],
+    color: "#8a7a70",
+    role: "guardian",
+    dialogue: ["La ceniza cae sobre quien no está listo. ¿Lo estás tú?"],
+    guardian: guardian("key_volcan_2", 720, 0.64),
+  },
+  {
+    id: "custodio_crater",
+    name: "Custodio del Cráter",
+    stage: "volcan",
+    pos: [0, -680],
+    color: "#ff9d2f",
+    role: "guardian",
+    dialogue: ["Al borde del cráter se decide quién merece enfrentar a Ignarok."],
+    guardian: guardian("key_volcan_3", 760, 0.66),
+  },
+
+  // ---------------- Reino Helado ----------------
+  {
     id: "chaman_nieve",
     name: "Chamán de Nieve",
     stage: "helado",
@@ -149,6 +349,47 @@ export const NPCS: NpcDef[] = [
     dialogue: ["Cosméticos helados, directos del glaciar."],
   },
   {
+    id: "cazadora_frost",
+    name: "Cazadora Frost",
+    stage: "helado",
+    pos: [620, 420],
+    color: "#a0e0ff",
+    role: "mascotas",
+    dialogue: ["Rastreo criaturas raras por todo el reino. También las compro, si tú tienes una."],
+  },
+  {
+    id: "guardian_glaciar",
+    name: "Guardián del Glaciar",
+    stage: "helado",
+    pos: [-640, -380],
+    color: "#8fd3ff",
+    role: "guardian",
+    dialogue: ["El hielo eterno guarda mi llave. Rómpelo con esfuerzo o con monedas."],
+    guardian: guardian("key_helado_1", 820, 0.7),
+  },
+  {
+    id: "centinela_escarcha",
+    name: "Centinela de Escarcha",
+    stage: "helado",
+    pos: [640, -420],
+    color: "#e0f7ff",
+    role: "guardian",
+    dialogue: ["Ni el viento más fuerte me hará ceder... salvo un buen trato."],
+    guardian: guardian("key_helado_2", 860, 0.72),
+  },
+  {
+    id: "custodio_iceberg",
+    name: "Custodio del Iceberg",
+    stage: "helado",
+    pos: [0, -680],
+    color: "#cdeeff",
+    role: "guardian",
+    dialogue: ["Frosthelm confía en mí para proteger su reino."],
+    guardian: guardian("key_helado_3", 900, 0.74),
+  },
+
+  // ---------------- Islas Flotantes ----------------
+  {
     id: "viajera_del_viento",
     name: "Viajera del Viento",
     stage: "islas",
@@ -158,6 +399,57 @@ export const NPCS: NpcDef[] = [
     dialogue: ["Las islas esconden secretos que solo el viento conoce."],
     missionIds: ["s_mascotas_islas"],
   },
+  {
+    id: "mercader_viento",
+    name: "Mercader del Viento",
+    stage: "islas",
+    pos: [260, 160],
+    color: "#a8ffcf",
+    role: "tienda",
+    shopId: "shop_islas",
+    dialogue: ["Todo lo que ves aquí llegó flotando desde algún lugar. ¿Te interesa algo?"],
+  },
+  {
+    id: "aeronauta_wisp",
+    name: "Aeronauta Wisp",
+    stage: "islas",
+    pos: [620, 420],
+    color: "#dfffea",
+    role: "mascotas",
+    dialogue: ["Compro criaturas voladoras y también las que no vuelan. Buen precio garantizado."],
+  },
+  {
+    id: "guardian_viento",
+    name: "Guardián del Viento",
+    stage: "islas",
+    pos: [-640, -380],
+    color: "#bfe6ff",
+    role: "guardian",
+    dialogue: ["Solo quien no teme caer puede llevarse esta llave."],
+    guardian: guardian("key_islas_1", 960, 0.78),
+  },
+  {
+    id: "centinela_nubes",
+    name: "Centinela de las Nubes",
+    stage: "islas",
+    pos: [640, -420],
+    color: "#ffffff",
+    role: "guardian",
+    dialogue: ["Flotamos sobre el mundo. Aquí arriba, las reglas son las mías."],
+    guardian: guardian("key_islas_2", 1000, 0.8),
+  },
+  {
+    id: "custodio_puente",
+    name: "Custodio del Puente",
+    stage: "islas",
+    pos: [0, -680],
+    color: "#7fd1ff",
+    role: "guardian",
+    dialogue: ["Este puente de energía es el último paso antes de Aeris."],
+    guardian: guardian("key_islas_3", 1040, 0.82),
+  },
+
+  // ---------------- Laboratorio Tecnológico ----------------
   {
     id: "cientifica_lux",
     name: "Científica Lux",
@@ -179,15 +471,106 @@ export const NPCS: NpcDef[] = [
     missionIds: ["s_goles_laboratorio"],
   },
   {
+    id: "doctora_byte",
+    name: "Doctora Byte",
+    stage: "laboratorio",
+    pos: [620, 420],
+    color: "#4dffe0",
+    role: "mascotas",
+    dialogue: ["Analizo el ADN de tus mascotas antes de pagar. Es solo curiosidad científica."],
+  },
+  {
+    id: "guardian_nucleo",
+    name: "Guardián del Núcleo",
+    stage: "laboratorio",
+    pos: [-640, -380],
+    color: "#4dffe0",
+    role: "guardian",
+    dialogue: ["El núcleo del laboratorio no se toca sin autorización. O sin un buen partido."],
+    guardian: guardian("key_laboratorio_1", 1100, 0.86),
+  },
+  {
+    id: "centinela_datos",
+    name: "Centinela de Datos",
+    stage: "laboratorio",
+    pos: [640, -420],
+    color: "#66ff99",
+    role: "guardian",
+    dialogue: ["Calculando probabilidad de que ganes... iniciando desafío."],
+    guardian: guardian("key_laboratorio_2", 1140, 0.88),
+  },
+  {
+    id: "custodio_reactor",
+    name: "Custodio del Reactor",
+    stage: "laboratorio",
+    pos: [0, -680],
+    color: "#ff6b6b",
+    role: "guardian",
+    dialogue: ["La Unidad Ω fue creada aquí. Solo los mejores llegan hasta ella."],
+    guardian: guardian("key_laboratorio_3", 1180, 0.9),
+  },
+
+  // ---------------- Reino Celestial ----------------
+  {
     id: "guardian_celestial",
     name: "Guardián Celestial",
     stage: "celestial",
     pos: [0, 260],
     color: "#ffd76b",
     role: "historia",
-    dialogue: [
-      "Has llegado hasta aquí, piloto. Solo queda un desafío: el Campeón Eterno.",
-      "Buena suerte. El mundo entero te observa.",
-    ],
+    dialogue: ["Has llegado hasta aquí, piloto. Solo queda un desafío: el Campeón Eterno.", "Buena suerte. El mundo entero te observa."],
+  },
+  {
+    id: "vendedora_celestial",
+    name: "Vendedora Celestial",
+    stage: "celestial",
+    pos: [-260, 120],
+    color: "#fff2c2",
+    role: "tienda",
+    shopId: "shop_celestial",
+    dialogue: ["Solo los pilotos que llegan tan alto pueden comprar aquí."],
+  },
+  {
+    id: "oraculo_astra",
+    name: "Oráculo Astra",
+    stage: "celestial",
+    pos: [620, 420],
+    color: "#ffe9a8",
+    role: "mascotas",
+    dialogue: ["Veo el futuro de tus mascotas... y te pago muy bien por él."],
+  },
+  {
+    id: "guardian_luz",
+    name: "Guardián de la Luz",
+    stage: "celestial",
+    pos: [-640, -380],
+    color: "#fff7d6",
+    role: "guardian",
+    dialogue: ["La última prueba antes del Campeón Eterno empieza conmigo."],
+    guardian: guardian("key_celestial_1", 1300, 0.94),
+  },
+  {
+    id: "centinela_dorado",
+    name: "Centinela Dorado",
+    stage: "celestial",
+    pos: [640, -420],
+    color: "#ffcc33",
+    role: "guardian",
+    dialogue: ["El oro no compra el respeto... pero mi llave sí tiene precio."],
+    guardian: guardian("key_celestial_2", 1350, 0.96),
+  },
+  {
+    id: "custodio_trono",
+    name: "Custodio del Trono",
+    stage: "celestial",
+    pos: [0, -680],
+    color: "#ffffff",
+    role: "guardian",
+    dialogue: ["Ante el trono del Campeón Eterno, solo los completos pueden entrar."],
+    guardian: guardian("key_celestial_3", 1400, 0.98),
   },
 ];
+
+export function guardiansForStage(stage: StageId): NpcDef[] {
+  return NPCS.filter((n) => n.stage === stage && n.role === "guardian");
+}

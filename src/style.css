@@ -491,6 +491,118 @@ body {
   border-color: transparent;
 }
 
+#mission-stage-filter {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  width: 100%;
+}
+
+/* ---------- Historia introductoria ---------- */
+#intro-story {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #0d1524, #010204 75%);
+  pointer-events: auto;
+  z-index: 300;
+  text-align: center;
+  gap: 32px;
+  padding: 40px;
+}
+#intro-story.show {
+  display: flex;
+}
+#intro-story-text {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+#intro-story-text p {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  opacity: 0;
+  animation: intro-line-in 1s ease forwards;
+}
+#intro-story-text p b {
+  color: var(--text);
+}
+@keyframes intro-line-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#btn-intro-skip {
+  opacity: 0;
+  animation: intro-line-in 1s ease forwards;
+}
+
+/* ---------- Final: el cohete ---------- */
+#ending-screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 60%, #241a3a, #04020a 75%);
+  pointer-events: auto;
+  z-index: 320;
+  text-align: center;
+  gap: 26px;
+  padding: 40px;
+}
+#ending-screen.show {
+  display: flex;
+}
+#ending-rocket {
+  width: 70px;
+  height: 110px;
+  background: linear-gradient(180deg, #fff2c2, #ffcc33 60%, #ff8a3d);
+  border-radius: 50% 50% 12px 12px;
+  position: relative;
+  animation: rocket-hover 2s ease-in-out infinite;
+  box-shadow: 0 0 50px rgba(255, 204, 51, 0.6);
+}
+#ending-rocket::after {
+  content: "";
+  position: absolute;
+  bottom: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 40px;
+  background: linear-gradient(180deg, #ffe08a, transparent);
+  filter: blur(2px);
+}
+@keyframes rocket-hover {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-14px) rotate(2deg); }
+}
+#ending-text {
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+#ending-text b {
+  color: var(--gold);
+}
+
+
 /* ---------- Dialogo ---------- */
 #dialogue-box {
   position: absolute;
@@ -712,9 +824,20 @@ body {
   position: relative;
 }
 #garage-canvas {
+  animation: garage-drive-in 0.55s cubic-bezier(0.2, 0.8, 0.3, 1);
   width: 100%;
   height: 100%;
   display: block;
+}
+@keyframes garage-drive-in {
+  from {
+    transform: translateX(-40%) rotate(-6deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
 }
 .garage-hint {
   position: absolute;

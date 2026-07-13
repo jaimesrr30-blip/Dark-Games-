@@ -9,7 +9,10 @@ export type StageId =
   | "helado"
   | "islas"
   | "laboratorio"
-  | "celestial";
+  | "celestial"
+  | "planeta_escarlata"
+  | "planeta_anillos"
+  | "planeta_cristal";
 
 export type PropType = "arbol" | "cactus" | "roca" | "cristal" | "nieve" | "nube" | "tuberia" | "farola";
 
@@ -28,10 +31,17 @@ export interface StageDef {
   propColor: string;
   bossName: string;
   bossTitle: string;
+  // Los planetas viven en el "Sistema Solar" (se viaja a ellos con el cohete,
+  // no por el Mapa de Etapas normal) en vez del mundo con base en tierra.
+  realm?: "solar";
 }
 
 const W = 2200;
 const H = 1600;
+// Los planetas del sistema solar tienen mapas más grandes que las etapas
+// terrestres para caber más misiones secundarias y construcciones.
+const PW = 3200;
+const PH = 2400;
 
 export const STAGES: Record<StageId, StageDef> = {
   hub: {
@@ -178,6 +188,56 @@ export const STAGES: Record<StageId, StageDef> = {
     bossName: "El Campeón Eterno",
     bossTitle: "Maestro de Todos los Pilotos",
   },
+
+  // ---------------- Sistema Solar (tras construir el cohete) ----------------
+  planeta_escarlata: {
+    id: "planeta_escarlata",
+    name: "Planeta Escarlata",
+    description: "Cañones rojos y agujas de roca bajo dos soles.",
+    order: 9,
+    width: PW,
+    height: PH,
+    groundColor: "#4a1408",
+    groundColorAlt: "#5c1c0c",
+    accentColor: "#ff5a3d",
+    skyColor: "#2a0a08",
+    propType: "roca",
+    propColor: "#8a2a12",
+    bossName: "Vorrak",
+    bossTitle: "El Devorador de Cañones",
+  },
+  planeta_anillos: {
+    id: "planeta_anillos",
+    name: "Anillos de Kaion",
+    description: "Plataformas flotantes entre los anillos de un gigante gaseoso.",
+    order: 10,
+    width: PW,
+    height: PH,
+    groundColor: "#332a4a",
+    groundColorAlt: "#3d3258",
+    accentColor: "#d9b8ff",
+    skyColor: "#1a1430",
+    propType: "nube",
+    propColor: "#c9a8ff",
+    bossName: "Nébula-9",
+    bossTitle: "Guardián de los Anillos",
+  },
+  planeta_cristal: {
+    id: "planeta_cristal",
+    name: "Luna de Cristal",
+    description: "Formaciones de cristal viviente que laten con luz propia.",
+    order: 11,
+    width: PW,
+    height: PH,
+    groundColor: "#0f2a3a",
+    groundColorAlt: "#123648",
+    accentColor: "#7bf2ff",
+    skyColor: "#081824",
+    propType: "cristal",
+    propColor: "#7bf2ff",
+    bossName: "Prisma Eterna",
+    bossTitle: "El Eco de Cristal",
+  },
 };
 
 export const STAGE_ORDER: StageId[] = [
@@ -192,6 +252,8 @@ export const STAGE_ORDER: StageId[] = [
   "celestial",
 ];
 
+export const PLANET_ORDER: StageId[] = ["planeta_escarlata", "planeta_anillos", "planeta_cristal"];
+
 export function nextStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);
   if (idx < 0 || idx >= STAGE_ORDER.length - 1) return null;
@@ -202,4 +264,16 @@ export function prevStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);
   if (idx <= 0) return null;
   return STAGE_ORDER[idx - 1];
+}
+
+export function nextPlanet(id: StageId): StageId | null {
+  const idx = PLANET_ORDER.indexOf(id);
+  if (idx < 0 || idx >= PLANET_ORDER.length - 1) return null;
+  return PLANET_ORDER[idx + 1];
+}
+
+// Progresión unificada: al derrotar un jefe se desbloquea lo siguiente, ya sea
+// la próxima etapa terrestre o el próximo planeta del sistema solar.
+export function nextInProgression(id: StageId): StageId | null {
+  return nextStage(id) ?? nextPlanet(id);
 }

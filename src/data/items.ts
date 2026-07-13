@@ -122,6 +122,27 @@ export const ITEMS: ItemDef[] = [
   // Objetos exclusivos del Reino Celestial
   { id: "gol_bendicion", slot: "explosionGol", name: "Bendición Celestial", rarity: "divino", price: 350, currency: "diamantes", colorHex: "#fff2c2", description: "El cielo entero celebra tu gol." },
   { id: "estela_celestial", slot: "estela", name: "Estela Celestial", rarity: "divino", price: 250, currency: "diamantes", colorHex: "#ffe9a8", description: "Un rastro de luz dorada." },
+
+  // Objetos exclusivos del Planeta Escarlata
+  { id: "color_lava_marciana", slot: "color", name: "Lava Marciana", rarity: "dios", price: 160, currency: "diamantes", colorHex: "#ff5a3d", colorHex2: "#8a2a12", description: "Pulsa como los cañones al atardecer." },
+  { id: "rueda_canon", slot: "rueda", name: "Borde del Cañón", rarity: "secreto", price: 300, currency: "diamantes", colorHex: "#c9391f", description: "Tallado en la roca más antigua del planeta." },
+  { id: "gol_impacto_meteorito", slot: "explosionGol", name: "Impacto de Meteorito", rarity: "legendario", price: 110, currency: "diamantes", colorHex: "#ff5a3d", colorHex2: "#ffb347", description: "El suelo tiembla al marcar, como un impacto real." },
+  { id: "turbo_marciano", slot: "turbo", name: "Turbo Marciano", rarity: "dios", price: 150, currency: "diamantes", colorHex: "#ff7a3d", description: "Arde con el polvo rojo del planeta." },
+  { id: "estela_polvo_rojo", slot: "estela", name: "Estela de Polvo Rojo", rarity: "raro", price: 1400, currency: "monedas", colorHex: "#c9391f", description: "Levantas una nube de polvo rojo a tu paso." },
+
+  // Objetos exclusivos de los Anillos de Kaion
+  { id: "color_nebulosa", slot: "color", name: "Nebulosa", rarity: "secreto", price: 280, currency: "diamantes", colorHex: "#d9b8ff", colorHex2: "#6a3fa0", description: "Cambia de tono como una nube de gas cósmico." },
+  { id: "rueda_anillo_kaion", slot: "rueda", name: "Anillo de Kaion", rarity: "divino", price: 320, currency: "diamantes", colorHex: "#d9b8ff", colorHex2: "#ffffff", description: "Un aro que cambia de violeta a blanco, como los anillos del planeta." },
+  { id: "gol_supernova_kaion", slot: "explosionGol", name: "Supernova de Kaion", rarity: "dios", price: 170, currency: "diamantes", colorHex: "#d9b8ff", colorHex2: "#ffe9ff", description: "Una explosión digna de un gigante gaseoso." },
+  { id: "antena_anillo", slot: "antena", name: "Antena de Anillo", rarity: "epico", price: 2000, currency: "monedas", colorHex: "#c9a8ff", description: "Capta señales de todo el sistema." },
+  { id: "balon_nebula", slot: "balon", name: "Balón Nébula", rarity: "legendario", price: 95, currency: "diamantes", colorHex: "#d9b8ff", description: "Deja un rastro de gas cósmico tras de sí." },
+
+  // Objetos exclusivos de la Luna de Cristal
+  { id: "color_prisma_viviente", slot: "color", name: "Prisma Viviente", rarity: "prohibido", price: 999, currency: "diamantes", colorHex: "#7bf2ff", colorHex2: "#ff8fe0", description: "Nadie sabe si el cristal está vivo... o si te observa." },
+  { id: "rueda_resonancia", slot: "rueda", name: "Borde de Resonancia", rarity: "prohibido", price: 500, currency: "diamantes", colorHex: "#7bf2ff", colorHex2: "#ffffff", description: "Vibra con una frecuencia que no deberías poder oír." },
+  { id: "gol_eco_cristal", slot: "explosionGol", name: "Eco de Cristal", rarity: "prohibido", price: 450, currency: "diamantes", colorHex: "#7bf2ff", colorHex2: "#c8fbff", description: "El campo entero resuena como si fuera de cristal." },
+  { id: "estela_cristalina", slot: "estela", name: "Estela Cristalina", rarity: "secreto", price: 300, currency: "diamantes", colorHex: "#7bf2ff", description: "Fragmentos de cristal brillante flotan tras de ti." },
+  { id: "bocina_resonante", slot: "bocina", name: "Bocina Resonante", rarity: "divino", price: 260, currency: "diamantes", description: "Un eco cristalino que se repite tres veces." },
 ];
 
 export function itemsBySlot(slot: ItemSlot): ItemDef[] {

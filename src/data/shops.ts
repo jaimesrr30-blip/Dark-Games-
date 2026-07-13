@@ -68,6 +68,27 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "balon_dios",
     "color_sangre_divina",
   ],
+  shop_planeta_escarlata: [
+    "color_lava_marciana",
+    "rueda_canon",
+    "gol_impacto_meteorito",
+    "turbo_marciano",
+    "estela_polvo_rojo",
+  ],
+  shop_planeta_anillos: [
+    "color_nebulosa",
+    "rueda_anillo_kaion",
+    "gol_supernova_kaion",
+    "antena_anillo",
+    "balon_nebula",
+  ],
+  shop_planeta_cristal: [
+    "color_prisma_viviente",
+    "rueda_resonancia",
+    "gol_eco_cristal",
+    "estela_cristalina",
+    "bocina_resonante",
+  ],
 };
 
 export function shopCatalog(shopId: string): string[] {

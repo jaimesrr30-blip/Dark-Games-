@@ -36,6 +36,7 @@ export const UI_TEMPLATE = `
     <button class="btn-arrow small interactive" id="btn-open-missions">Misiones</button>
     <button class="btn-arrow small interactive" id="btn-open-inventory">Inventario</button>
     <button class="btn-arrow small interactive" id="btn-open-garage">Garaje</button>
+    <button class="btn-arrow small gold interactive hidden" id="btn-open-solar">🚀 Sistema Solar</button>
   </div>
 </div>
 

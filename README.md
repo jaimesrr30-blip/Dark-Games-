@@ -32,9 +32,26 @@ npm run preview
 
 ## Qué incluye este prototipo
 
-- **Historia introductoria** al empezar una partida nueva, y una **escena
-  final** al completar el cohete del Reino Celestial que deja abierta la
-  puerta a una futura expansión (el sistema solar).
+- **Historia introductoria** al empezar una partida nueva.
+- **El cohete y el Sistema Solar**: en el Reino Celestial, el Ingeniero Vex
+  pide reunir las 4 piezas de un cohete escondidas por el mapa más el motor
+  que suelta el Campeón Eterno al ser derrotado. Al entregárselo con todo
+  completo se dispara una escena narrativa, una animación de despegue (el
+  cohete sale desde tu posición, cruza la atmósfera y el cielo se llena de
+  estrellas) y llegas a una vista del **Sistema Solar**: una pantalla propia
+  en 2D con un sol brillante y los 3 planetas orbitando, navegable con A/D y
+  una flecha roja rebotante como en el resto del juego. Viajar a un planeta
+  dispara una animación de "salto" (líneas de velocidad tipo hiperespacio)
+  antes de aterrizar. El Sistema Solar queda accesible en cualquier momento
+  con el botón "🚀 Sistema Solar" del HUD.
+- **3 planetas** (Planeta Escarlata, Anillos de Kaion, Luna de Cristal),
+  cada uno con mapas más grandes que las etapas terrestres y con la misma
+  profundidad de contenido que un mundo normal: 3 guardianes con llave, un
+  jefe propio, vendedor y comprador de mascotas exclusivos, guarida, puerta
+  secreta, mascotas/cofres, decoración temática (chozas/puestos colocados a
+  propósito junto a los NPCs, no al azar) y varias misiones secundarias
+  propias además de las que genera el resto de sistemas. Se desbloquean en
+  orden derrotando al jefe del planeta anterior.
 - **9 etapas** (Plaza Central + 8 zonas temáticas: ciudad futurista, desierto,
   bosque mágico, volcán, reino helado, islas flotantes, laboratorio, reino
   celestial), cada una un área 2D abierta con su propia ambientación,
@@ -114,11 +131,10 @@ npm run preview
 
 - **Música**: no se incluye música con derechos de autor. Se puede añadir
   después con archivos de audio propios.
-- **Sistema solar / mundos-planeta**: quedó como gancho narrativo en la
-  escena final, pero no está construido todavía (es contenido enorme:
-  NPCs, misiones, jefes y partidos nuevos por cada planeta).
 - **Partidos**: son 1 contra 1, con física arcade simplificada (sin
   colisiones de coche-coche perfectamente realistas).
+- El Sistema Solar tiene 3 planetas por ahora; añadir más sigue el mismo
+  patrón de datos que los 3 actuales (etapa + NPCs + spawns + misiones).
 
 ## Estructura del proyecto
 

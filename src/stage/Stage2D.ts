@@ -14,24 +14,32 @@ interface Prop {
 interface Landmark {
   stage: StageId;
   pos: [number, number];
-  type: "fogata" | "fuente" | "estatua";
+  type: "fogata" | "fuente" | "estatua" | "choza";
 }
 
 // Decoraciones fijas (no aleatorias) que dan personalidad a puntos concretos del mapa:
 // una fogata junto al Druida Finn, una fuente en la Plaza Central, estatuas en las
-// grandes plazas de Ciudad Futurista y el Reino Celestial.
+// grandes plazas de Ciudad Futurista y el Reino Celestial, y chozas/puestos junto a
+// los NPCs de los planetas para que no parezca decoración puesta al azar.
 const LANDMARKS: Landmark[] = [
   { stage: "hub", pos: [0, 0], type: "fuente" },
   { stage: "bosque", pos: [-268, 176], type: "fogata" },
   { stage: "ciudad", pos: [0, 0], type: "estatua" },
   { stage: "celestial", pos: [0, 0], type: "estatua" },
+
+  { stage: "planeta_escarlata", pos: [-330, 260], type: "choza" },
+  { stage: "planeta_escarlata", pos: [820, -640], type: "choza" },
+  { stage: "planeta_anillos", pos: [-340, -100], type: "choza" },
+  { stage: "planeta_anillos", pos: [920, 580], type: "choza" },
+  { stage: "planeta_cristal", pos: [-320, 240], type: "choza" },
+  { stage: "planeta_cristal", pos: [870, -720], type: "choza" },
 ];
 
 function buildProps(stage: StageDef): Prop[] {
   const rng = mulberry32(hashString(stage.id + "_props"));
   const props: Prop[] = [];
   const baseArea = 2200 * 1600;
-  const count = stage.id === "hub" ? Math.round(55 * ((stage.width * stage.height) / baseArea)) : 90;
+  const count = Math.round((stage.id === "hub" ? 55 : 90) * ((stage.width * stage.height) / baseArea));
   for (let i = 0; i < count; i++) {
     const x = (rng() - 0.5) * stage.width * 0.94;
     const y = (rng() - 0.5) * stage.height * 0.94;
@@ -161,9 +169,44 @@ function drawProp(ctx: CanvasRenderingContext2D, type: PropType, color: string, 
   ctx.restore();
 }
 
-function drawLandmark(ctx: CanvasRenderingContext2D, type: Landmark["type"], t: number) {
+function drawLandmark(ctx: CanvasRenderingContext2D, type: Landmark["type"], t: number, accentColor: string) {
   ctx.save();
   switch (type) {
+    case "choza": {
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath();
+      ctx.ellipse(0, 34, 42, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#2a2430";
+      roundRect(ctx, -34, -6, 68, 42, 4);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, -34, -6, 68, 42, 4);
+      ctx.stroke();
+      ctx.fillStyle = "#181420";
+      ctx.beginPath();
+      ctx.moveTo(-42, -4);
+      ctx.lineTo(0, -44);
+      ctx.lineTo(42, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.6;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      const glow = 0.55 + Math.sin(t * 2.4) * 0.25;
+      ctx.fillStyle = accentColor;
+      ctx.globalAlpha = glow;
+      roundRect(ctx, -8, 6, 16, 14, 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#3a3244";
+      roundRect(ctx, 14, 8, 12, 26, 2);
+      ctx.fill();
+      break;
+    }
     case "fuente": {
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.beginPath();
@@ -322,7 +365,7 @@ export class Stage2D {
       const [sx, sy] = camera.worldToScreen(l.pos[0], l.pos[1]);
       ctx.save();
       ctx.translate(sx, sy);
-      drawLandmark(ctx, l.type, this.t);
+      drawLandmark(ctx, l.type, this.t, this.def.accentColor);
       ctx.restore();
     }
   }

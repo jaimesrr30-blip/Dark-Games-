@@ -1,6 +1,6 @@
 import type { OwnedPet } from "../data/pets";
 import type { StageId } from "../data/stages";
-import { nextStage } from "../data/stages";
+import { nextInProgression } from "../data/stages";
 import { MISSIONS, type MissionDef } from "../data/missions";
 import { ITEMS } from "../data/items";
 import { guardiansForStage } from "../data/npcs";
@@ -216,7 +216,7 @@ export class GameState {
   defeatBoss(stage: StageId) {
     if (!this.data.defeatedBosses.includes(stage)) {
       this.data.defeatedBosses.push(stage);
-      const next = nextStage(stage);
+      const next = nextInProgression(stage);
       if (next && !this.isStageUnlocked(next)) this.data.unlockedStages.push(next);
       this.save();
       this.emit();

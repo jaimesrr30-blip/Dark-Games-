@@ -6,7 +6,7 @@ import { RARITIES, type Rarity } from "../data/rarity";
 import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
 import { shopCatalog } from "../data/shops";
 import { MISSIONS, type MissionType } from "../data/missions";
-import { STAGES, STAGE_ORDER, type StageId } from "../data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, type StageId } from "../data/stages";
 import { NPCS, guardiansForStage, type NpcDef } from "../data/npcs";
 import { CHESTS, PET_SPAWNS } from "../data/spawns";
 import { PET_ARCHETYPES, petSellPrice } from "../data/pets";
@@ -40,6 +40,7 @@ export class UIManager {
   private currentGarageSlot: ItemSlot = "color";
   private minimapCtx: CanvasRenderingContext2D;
   onEquipChange: (() => void) | null = null;
+  onOpenSolarSystem: (() => void) | null = null;
 
   constructor(root: HTMLElement, gs: GameState) {
     this.root = root;
@@ -59,6 +60,7 @@ export class UIManager {
     qs("#btn-open-inventory").addEventListener("click", () => this.openInventoryModal());
     qs("#btn-open-garage").addEventListener("click", () => this.openGarageModal());
     qs("#btn-open-map").addEventListener("click", () => this.openMapModal());
+    qs("#btn-open-solar").addEventListener("click", () => this.onOpenSolarSystem?.());
 
     document.querySelectorAll<HTMLElement>("[data-mtab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -71,7 +73,8 @@ export class UIManager {
 
     const stageFilter = qs<HTMLSelectElement>("#mission-stage-filter");
     stageFilter.innerHTML =
-      `<option value="all">Todas las etapas</option>` + STAGE_ORDER.map((id) => `<option value="${id}">${STAGES[id].name}</option>`).join("");
+      `<option value="all">Todas las etapas</option>` +
+      [...STAGE_ORDER, ...PLANET_ORDER].map((id) => `<option value="${id}">${STAGES[id].name}</option>`).join("");
     stageFilter.addEventListener("change", () => {
       this.currentMissionStage = stageFilter.value as StageId | "all";
       this.renderMissionList();
@@ -524,7 +527,7 @@ export class UIManager {
 
   private renderKeysList() {
     const list = qs("#inventory-list");
-    const stagesWithGuardians = STAGE_ORDER.filter((id) => id !== "hub");
+    const stagesWithGuardians = [...STAGE_ORDER.filter((id) => id !== "hub"), ...PLANET_ORDER];
     let html = "";
     for (const stageId of stagesWithGuardians) {
       const stageDef = STAGES[stageId];
@@ -762,6 +765,10 @@ export class UIManager {
   showWorldMenus() {
     qs("#hud-menu-buttons").classList.remove("hidden");
     qs("#control-hint").classList.remove("hidden");
+  }
+
+  setSolarSystemButtonVisible(visible: boolean) {
+    qs("#btn-open-solar").classList.toggle("hidden", !visible);
   }
 
   // ---------- Partido ----------

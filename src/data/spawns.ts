@@ -41,6 +41,18 @@ export const CHESTS: ChestSpawn[] = [
 
   { id: "chest_celestial_1", stage: "celestial", pos: [0, 0], minRarity: "divino" },
   { id: "chest_celestial_2", stage: "celestial", pos: [-300, -180], minRarity: "prohibido" },
+
+  { id: "chest_escarlata_1", stage: "planeta_escarlata", pos: [520, 420], minRarity: "legendario" },
+  { id: "chest_escarlata_2", stage: "planeta_escarlata", pos: [-560, -380], minRarity: "dios" },
+  { id: "chest_escarlata_3", stage: "planeta_escarlata", pos: [780, -900], minRarity: "secreto" },
+
+  { id: "chest_anillos_1", stage: "planeta_anillos", pos: [480, -360], minRarity: "legendario" },
+  { id: "chest_anillos_2", stage: "planeta_anillos", pos: [-500, 420], minRarity: "dios" },
+  { id: "chest_anillos_3", stage: "planeta_anillos", pos: [-820, 950], minRarity: "divino" },
+
+  { id: "chest_cristal_1", stage: "planeta_cristal", pos: [460, 380], minRarity: "dios" },
+  { id: "chest_cristal_2", stage: "planeta_cristal", pos: [-480, -400], minRarity: "divino" },
+  { id: "chest_cristal_3", stage: "planeta_cristal", pos: [850, 920], minRarity: "prohibido" },
 ];
 
 export const PET_SPAWNS: PetSpawnPoint[] = [
@@ -55,6 +67,13 @@ export const PET_SPAWNS: PetSpawnPoint[] = [
   { id: "pet_laboratorio_1", stage: "laboratorio", pos: [300, -100] },
   { id: "pet_islas_2", stage: "islas", pos: [180, -260] },
   { id: "pet_celestial_1", stage: "celestial", pos: [180, -160] },
+
+  { id: "pet_escarlata_1", stage: "planeta_escarlata", pos: [-300, 500] },
+  { id: "pet_escarlata_2", stage: "planeta_escarlata", pos: [620, -200] },
+  { id: "pet_anillos_1", stage: "planeta_anillos", pos: [340, 480] },
+  { id: "pet_anillos_2", stage: "planeta_anillos", pos: [-620, -180] },
+  { id: "pet_cristal_1", stage: "planeta_cristal", pos: [-340, 500] },
+  { id: "pet_cristal_2", stage: "planeta_cristal", pos: [600, -220] },
 ];
 
 export interface PuzzleButtonSpawn {
@@ -106,6 +125,10 @@ export const SECRET_DOORS: SecretDoorSpawn[] = [
   { id: "secreto_islas", stage: "islas", pos: [900, 600], chestMinRarity: "dios", rewardItemId: "color_prohibido", coins: 1000 },
   { id: "secreto_laboratorio", stage: "laboratorio", pos: [-900, 600], chestMinRarity: "secreto", rewardItemId: "gol_supernova", coins: 1200 },
   { id: "secreto_celestial", stage: "celestial", pos: [900, 600], chestMinRarity: "divino", rewardItemId: "color_sangre_divina", coins: 1500 },
+
+  { id: "secreto_escarlata", stage: "planeta_escarlata", pos: [-1200, -950], chestMinRarity: "secreto", rewardItemId: "turbo_marciano", coins: 1800 },
+  { id: "secreto_anillos", stage: "planeta_anillos", pos: [1200, -950], chestMinRarity: "divino", rewardItemId: "balon_nebula", coins: 2000 },
+  { id: "secreto_cristal", stage: "planeta_cristal", pos: [-1250, -980], chestMinRarity: "prohibido", rewardItemId: "estela_cristalina", coins: 2200 },
 ];
 
 export interface HideoutSpawn {
@@ -131,6 +154,10 @@ export const HIDEOUTS: HideoutSpawn[] = [
   { id: "guarida_islas", stage: "islas", pos: [-700, -550], enemyName: "Pirata del Cielo", enemyColor: "#dfffea", difficulty: 0.72, rewardCoins: 800 },
   { id: "guarida_laboratorio", stage: "laboratorio", pos: [700, -550], enemyName: "Androide Rebelde", enemyColor: "#4dffe0", difficulty: 0.78, rewardCoins: 900, rewardItemId: "bocina_robot" },
   { id: "guarida_celestial", stage: "celestial", pos: [-700, 550], enemyName: "Centinela Caído", enemyColor: "#ffd76b", difficulty: 0.85, rewardCoins: 1100 },
+
+  { id: "guarida_escarlata", stage: "planeta_escarlata", pos: [1200, 950], enemyName: "Renegado del Cañón", enemyColor: "#b33a1a", difficulty: 1.0, rewardCoins: 1300, rewardItemId: "gol_impacto_meteorito" },
+  { id: "guarida_anillos", stage: "planeta_anillos", pos: [-1200, 950], enemyName: "Pirata de Kaion", enemyColor: "#9a6fd9", difficulty: 1.05, rewardCoins: 1450, rewardItemId: "antena_anillo" },
+  { id: "guarida_cristal", stage: "planeta_cristal", pos: [1250, 980], enemyName: "Fragmento Corrupto", enemyColor: "#3fb8c9", difficulty: 1.1, rewardCoins: 1600, rewardItemId: "bocina_resonante" },
 ];
 
 // Punto de entrada al jugar la etapa (siempre cerca del borde inferior).

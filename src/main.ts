@@ -3,12 +3,12 @@ import { GameState } from "./state/GameState";
 import { UIManager } from "./ui/UIManager";
 import { Input } from "./core/Input";
 import { Camera2D } from "./core/Camera2D";
-import { CarBody2D } from "./entities/Car2D";
+import { CarBody2D, roundRect } from "./entities/Car2D";
 import { visualFromState } from "./entities/carVisual";
 import { Npc2DInstance } from "./entities/Npc2D";
 import { NPCS, type NpcDef } from "./data/npcs";
 import { MISSIONS } from "./data/missions";
-import { STAGES, STAGE_ORDER, type StageId } from "./data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, type StageId } from "./data/stages";
 import { Stage2D } from "./stage/Stage2D";
 import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
 import { Match2D } from "./match2d/Match2D";
@@ -34,7 +34,7 @@ let interactables: Interactable2D[] = [];
 let match: Match2D | null = null;
 let interior: Interior2D | null = null;
 let hideoutInterior: HideoutInterior2D | null = null;
-let mode: "world" | "match" | "interior" | "ceremony" | "hideout" = "world";
+let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" = "world";
 let pendingGuardian: NpcDef | null = null;
 let pendingHideout: HideoutSpawn | null = null;
 let matchEnding = false;
@@ -46,6 +46,23 @@ interface KeyCeremony {
   onDone: () => void;
 }
 let ceremony: KeyCeremony | null = null;
+
+interface LaunchFx {
+  t: number;
+  total: number;
+}
+let launch: LaunchFx | null = null;
+
+interface PlanetTravel {
+  t: number;
+  total: number;
+  target: StageId;
+}
+let travel: PlanetTravel | null = null;
+
+let solarMapReturnPos: [number, number] | null = null;
+let solarMapSelected = 0;
+let solarMapT = 0;
 
 function resize() {
   const w = window.innerWidth;
@@ -89,6 +106,10 @@ function loadStage(id: StageId, pos?: [number, number] | null) {
 
 function talkToNpc(npc: Npc2DInstance) {
   const def = npc.def;
+  if (def.id === "ingeniero_cohete") {
+    talkToRocketEngineer(def);
+    return;
+  }
   if (def.role === "guardian") {
     talkToGuardian(def);
     return;
@@ -108,6 +129,31 @@ function talkToNpc(npc: Npc2DInstance) {
   ui.openDialogue(def.name, def.dialogue, () => {
     gs.notifyEvent("hablarCon", def.id, 1);
     if (def.shopId) ui.openShopModal(`Tienda de ${def.name}`, def.shopId);
+  });
+}
+
+function rocketPartsCount(): number {
+  return gs.countPuzzleItems([...ROCKET_PARTS.map((p) => p.id), ROCKET_ENGINE_ID]);
+}
+
+function talkToRocketEngineer(def: NpcDef) {
+  ui.openDialogue(def.name, def.dialogue, () => {
+    if (gs.isStageUnlocked(PLANET_ORDER[0])) {
+      ui.toast("El cohete ya está listo. Usa el botón del Sistema Solar cuando quieras viajar.", "raro");
+      gs.notifyEvent("hablarCon", def.id, 1);
+      return;
+    }
+    const have = rocketPartsCount();
+    if (have >= 5) {
+      ui.showEnding(() => {
+        gs.unlockStage(PLANET_ORDER[0]);
+        ui.setSolarSystemButtonVisible(true);
+        beginRocketLaunch();
+      });
+      gs.notifyEvent("hablarCon", def.id, 1);
+    } else {
+      ui.toast(`Llevas ${have}/5 piezas del cohete. Sigue buscando por el Reino Celestial y derrota al Campeón Eterno.`);
+    }
   });
 }
 
@@ -136,7 +182,7 @@ function talkToGuardian(def: NpcDef) {
 }
 
 function fieldThemeForGuardian(def: NpcDef): StageId {
-  const others = STAGE_ORDER.filter((s) => s !== "hub" && s !== stage.def.id);
+  const others = [...STAGE_ORDER, ...PLANET_ORDER].filter((s) => s !== "hub" && s !== stage.def.id);
   const idx = hashString(def.id) % others.length;
   return others[idx];
 }
@@ -167,11 +213,11 @@ function beginGuardianMatch(def: NpcDef) {
 // ---------------- Partidos ----------------
 
 function trainingSkillForStage(): number {
-  return Math.min(0.9, 0.32 + STAGES[stage.def.id].order * 0.06);
+  return Math.min(1.05, 0.32 + STAGES[stage.def.id].order * 0.06);
 }
 
 function beginMatch(modeType: "normal" | "boss") {
-  const skill = modeType === "boss" ? Math.min(0.98, 0.8 + STAGES[stage.def.id].order * 0.02) : trainingSkillForStage();
+  const skill = modeType === "boss" ? Math.min(1.2, 0.8 + STAGES[stage.def.id].order * 0.02) : trainingSkillForStage();
   match = new Match2D(gs, input, modeType, stage.def.id, skill);
   camera.snap(0, 0);
   mode = "match";
@@ -221,9 +267,6 @@ function endMatch() {
     matchEnding = false;
     mode = hideout ? "hideout" : "world";
     if (r.won && r.mode === "boss") portalFxT = 1.4;
-    if (wonRocketEngine && gs.countPuzzleItems([...ROCKET_PARTS.map((p) => p.id), ROCKET_ENGINE_ID]) >= 5) {
-      ui.showEnding(() => {});
-    }
   });
 }
 
@@ -283,6 +326,37 @@ function beginHideoutMatch(h: HideoutSpawn) {
   mode = "match";
   ui.showMatchHUD();
   ui.setMatchPetBadge(match.activePetBadge);
+}
+
+// ---------------- Sistema Solar ----------------
+
+function beginRocketLaunch() {
+  launch = { t: 0, total: 3.2 };
+  mode = "launch";
+  ui.hideWorldMenus();
+  ui.setInteractPrompt(null);
+}
+
+function enterSolarMap() {
+  solarMapReturnPos = [player.x, player.y];
+  solarMapT = 0;
+  mode = "solarmap";
+  ui.hideWorldMenus();
+  ui.setInteractPrompt(null);
+}
+
+function exitSolarMap() {
+  mode = "world";
+  ui.showWorldMenus();
+  if (solarMapReturnPos) {
+    player.setPosition(solarMapReturnPos[0], solarMapReturnPos[1]);
+    camera.snap(solarMapReturnPos[0], solarMapReturnPos[1]);
+  }
+}
+
+function beginPlanetTravel(target: StageId) {
+  travel = { t: 0, total: 1.8, target };
+  mode = "travel";
 }
 
 // ---------------- Interacción más cercana ----------------
@@ -534,6 +608,31 @@ function loop(tsMs: number) {
       ui.showWorldMenus();
       onDone();
     }
+  } else if (mode === "launch" && launch) {
+    launch.t += dt;
+    camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height }, 0.15);
+    stage.drawBackground(ctx, camera);
+    stage.drawProps(ctx, camera);
+    stage.drawLandmarks(ctx, camera);
+    if (launch.t < launch.total * 0.55) player.draw(ctx, camera, false);
+    drawLaunchFx(launch.t, launch.total);
+
+    if (launch.t >= launch.total) {
+      launch = null;
+      enterSolarMap();
+    }
+  } else if (mode === "solarmap") {
+    drawSolarSystemView(dt);
+  } else if (mode === "travel" && travel) {
+    travel.t += dt;
+    drawTravelFx(travel.t, travel.total);
+    if (travel.t >= travel.total) {
+      const target = travel.target;
+      travel = null;
+      loadStage(target);
+      mode = "world";
+      ui.showWorldMenus();
+    }
   }
 
   input.consumeFrame();
@@ -747,12 +846,258 @@ function drawPortalFx() {
   ctx.restore();
 }
 
+function drawLaunchFx(t: number, total: number) {
+  const [px, py] = camera.worldToScreen(player.x, player.y);
+  const w = camera.viewW;
+  const h = camera.viewH;
+  const p1 = total * 0.35;
+  const p2 = total * 0.85;
+
+  ctx.save();
+  const skyT = Math.min(1, Math.max(0, (t - p1) / (p2 - p1)));
+  ctx.fillStyle = `rgba(4,6,14,${skyT * 0.92})`;
+  ctx.fillRect(0, 0, w, h);
+
+  if (skyT > 0) {
+    ctx.globalAlpha = skyT;
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 60; i++) {
+      const sx = (i * 97 + t * 30) % w;
+      const sy = (i * 53) % h;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const riseT = Math.min(1, Math.max(0, (t - p1 * 0.6) / (total - p1 * 0.6)));
+  const shakeX = t < p1 ? Math.sin(t * 40) * (1 - t / p1) * 4 : 0;
+  const rocketY = py - riseT * h * 1.3;
+  ctx.save();
+  ctx.translate(px + shakeX, rocketY);
+  if (riseT > 0.05) {
+    const flameLen = 30 + Math.sin(t * 30) * 8;
+    const grad = ctx.createLinearGradient(0, 20, 0, 20 + flameLen);
+    grad.addColorStop(0, "rgba(255,220,140,0.9)");
+    grad.addColorStop(1, "rgba(255,90,20,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-8, 20);
+    ctx.lineTo(8, 20);
+    ctx.lineTo(0, 20 + flameLen);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = "#dfe7ff";
+  roundRect(ctx, -10, -26, 20, 46, 8);
+  ctx.fill();
+  ctx.fillStyle = "#8fa8ff";
+  ctx.beginPath();
+  ctx.moveTo(-10, -26);
+  ctx.lineTo(0, -42);
+  ctx.lineTo(10, -26);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#3a4a8f";
+  ctx.beginPath();
+  ctx.moveTo(-10, 10);
+  ctx.lineTo(-20, 26);
+  ctx.lineTo(-10, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(10, 10);
+  ctx.lineTo(20, 26);
+  ctx.lineTo(10, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "900 26px 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffe9a8";
+  ctx.shadowColor = "rgba(0,0,0,0.85)";
+  ctx.shadowBlur = 8;
+  const label = t < p1 ? "¡Despegando!" : t < p2 ? "Cruzando la atmósfera..." : "Bienvenido al Sistema Solar";
+  ctx.fillText(label, w / 2, h * 0.16);
+  ctx.restore();
+}
+
+function drawSolarSystemView(dt: number) {
+  solarMapT += dt;
+  const w = camera.viewW;
+  const h = camera.viewH;
+
+  ctx.fillStyle = "#05040c";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.save();
+  for (let i = 0; i < 140; i++) {
+    const sx = (i * 137) % w;
+    const sy = (i * 71) % h;
+    const tw = 0.4 + Math.sin(solarMapT * 2 + i) * 0.3;
+    ctx.globalAlpha = Math.max(0.15, tw);
+    ctx.fillStyle = "#fff";
+    const size = i % 5 === 0 ? 2 : 1;
+    ctx.fillRect(sx, sy, size, size);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  const cx = w / 2;
+  const cy = h * 0.4;
+  const sunPulse = 1 + Math.sin(solarMapT * 1.5) * 0.04;
+  const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 90 * sunPulse);
+  grad.addColorStop(0, "#fff8e0");
+  grad.addColorStop(0.5, "#ffcf6b");
+  grad.addColorStop(1, "rgba(255,150,40,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 90 * sunPulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffe9a8";
+  ctx.beginPath();
+  ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+  ctx.fill();
+
+  const slots: [number, number][] = [
+    [cx - 260, cy + 190],
+    [cx, cy + 300],
+    [cx + 260, cy + 190],
+  ];
+
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 1.5;
+  for (const [sxp, syp] of slots) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(40, Math.abs(sxp - cx)), Math.max(40, Math.abs(syp - cy)), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < PLANET_ORDER.length; i++) {
+    const id = PLANET_ORDER[i];
+    const def = STAGES[id];
+    const [px, pyBase] = slots[i];
+    const bob = Math.sin(solarMapT * 1.2 + i) * 6;
+    const py = pyBase + bob;
+    const unlocked = gs.isStageUnlocked(id);
+    const defeated = gs.isBossDefeated(id);
+    const radius = 34;
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.globalAlpha = unlocked ? 1 : 0.5;
+    ctx.fillStyle = def.accentColor;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (!unlocked) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("🔒", 0, 7);
+    }
+    ctx.restore();
+
+    ctx.globalAlpha = 1;
+    ctx.font = "bold 14px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = unlocked ? "#fff" : "#888";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(def.name, px, py + radius + 22);
+    ctx.font = "11px 'Segoe UI', sans-serif";
+    ctx.fillStyle = defeated ? "#4caf50" : unlocked ? "#ffe066" : "#888";
+    ctx.fillText(defeated ? "Jefe derrotado ✓" : unlocked ? "Disponible" : "Bloqueado", px, py + radius + 40);
+    ctx.shadowBlur = 0;
+
+    if (i === solarMapSelected) {
+      const arrowBob = Math.abs(Math.sin(solarMapT * 4)) * 10;
+      ctx.save();
+      ctx.translate(px, py - radius - 26 - arrowBob);
+      ctx.fillStyle = "#ff3b3b";
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 14);
+      ctx.lineTo(-11, -6);
+      ctx.lineTo(11, -6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  ctx.font = "900 30px 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffe9a8";
+  ctx.shadowColor = "rgba(0,0,0,0.8)";
+  ctx.shadowBlur = 6;
+  ctx.fillText("SISTEMA SOLAR", w / 2, h * 0.1);
+  ctx.shadowBlur = 0;
+
+  ctx.font = "bold 13px 'Segoe UI', sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.fillText("A / D para elegir · E para viajar · ESC para volver", w / 2, h * 0.94);
+
+  if (input.wasPressed("KeyA") || input.wasPressed("ArrowLeft")) solarMapSelected = Math.max(0, solarMapSelected - 1);
+  if (input.wasPressed("KeyD") || input.wasPressed("ArrowRight")) solarMapSelected = Math.min(PLANET_ORDER.length - 1, solarMapSelected + 1);
+  if (input.wasPressed("KeyE")) {
+    const id = PLANET_ORDER[solarMapSelected];
+    if (gs.isStageUnlocked(id)) beginPlanetTravel(id);
+    else ui.toast("Este planeta aún está bloqueado. Derrota al jefe del planeta anterior primero.");
+  }
+  if (input.wasPressed("Escape")) exitSolarMap();
+}
+
+function drawTravelFx(t: number, total: number) {
+  const w = camera.viewW;
+  const h = camera.viewH;
+  const p = Math.min(1, t / total);
+  ctx.save();
+  ctx.fillStyle = "#05040c";
+  ctx.fillRect(0, 0, w, h);
+  const cx = w / 2;
+  const cy = h / 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  for (let i = 0; i < 40; i++) {
+    const ang = (i / 40) * Math.PI * 2;
+    const len = 40 + p * 260;
+    const dist = 60 + i * 7;
+    const x1 = cx + Math.cos(ang) * dist;
+    const y1 = cy + Math.sin(ang) * dist;
+    const x2 = cx + Math.cos(ang) * (dist + len);
+    const y2 = cy + Math.sin(ang) * (dist + len);
+    ctx.globalAlpha = 0.5 * p;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = Math.max(0, (p - 0.7) / 0.3);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
 function startGame() {
   loadStage(gs.data.currentStage, gs.data.playerPos);
   ui.onEquipChange = () => {
     player.visual = visualFromState(gs);
   };
   ui.onTravelToStage = (id) => loadStage(id);
+  ui.onOpenSolarSystem = () => enterSolarMap();
+  ui.setSolarSystemButtonVisible(gs.isStageUnlocked(PLANET_ORDER[0]));
   resize();
   ui.hideLoading();
   requestAnimationFrame(loop);
@@ -765,6 +1110,11 @@ function startGame() {
       stage: () => stage,
       match: () => match,
       forceBoss: () => beginMatch("boss"),
+      forceRocketReady: () => {
+        for (const p of ROCKET_PARTS) gs.collectPuzzleItem(p.id);
+        gs.collectPuzzleItem(ROCKET_ENGINE_ID);
+      },
+      enterSolarMap: () => enterSolarMap(),
     };
   }
 }

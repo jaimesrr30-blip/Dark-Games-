@@ -102,6 +102,27 @@ export const ROCKET_PARTS: PuzzleButtonSpawn[] = [
   { id: "pieza_cohete_3", stage: "celestial", pos: [550, -250] },
   { id: "pieza_cohete_4", stage: "celestial", pos: [-550, -100] },
 ];
+
+// Cada planeta esconde 3 piezas de su propia nave local, muy repartidas por
+// el mapa. Reconstruirla (con el mecánico del planeta) es lo que permite
+// viajar al siguiente planeta, además de derrotar a su jefe.
+export const PLANET_SHIP_PARTS: PuzzleButtonSpawn[] = [
+  { id: "pieza_nave_escarlata_1", stage: "planeta_escarlata", pos: [-1500, -1150] },
+  { id: "pieza_nave_escarlata_2", stage: "planeta_escarlata", pos: [1500, 1150] },
+  { id: "pieza_nave_escarlata_3", stage: "planeta_escarlata", pos: [-1500, 1150] },
+
+  { id: "pieza_nave_anillos_1", stage: "planeta_anillos", pos: [1500, -1150] },
+  { id: "pieza_nave_anillos_2", stage: "planeta_anillos", pos: [-1500, 1150] },
+  { id: "pieza_nave_anillos_3", stage: "planeta_anillos", pos: [1500, 1150] },
+
+  { id: "pieza_nave_cristal_1", stage: "planeta_cristal", pos: [-1500, -1150] },
+  { id: "pieza_nave_cristal_2", stage: "planeta_cristal", pos: [1500, -1150] },
+  { id: "pieza_nave_cristal_3", stage: "planeta_cristal", pos: [1500, 1150] },
+];
+
+export function planetShipParts(stage: StageId): PuzzleButtonSpawn[] {
+  return PLANET_SHIP_PARTS.filter((p) => p.stage === stage);
+}
 export const ROCKET_ENGINE_ID = "motor_cohete";
 
 export interface SecretDoorSpawn {

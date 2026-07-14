@@ -634,6 +634,19 @@ export const NPCS: NpcDef[] = [
     role: "mascotas",
     dialogue: ["El polvo rojo conserva mascotas durante siglos. Te pago bien por una."],
   },
+  {
+    id: "mecanico_polvo",
+    name: "Mecánico del Polvo",
+    stage: "planeta_escarlata",
+    pos: [0, -320],
+    color: "#8fa8ff",
+    role: "historia",
+    dialogue: [
+      "Cuando caí aquí encontré los restos de una nave... nada que no se pueda arreglar con las piezas correctas.",
+      "Están muy escondidas por todo el planeta. Y antes de tocar nada, quiero verte derrotar a Vorrak con mis propios ojos.",
+    ],
+    missionIds: ["m_nave_escarlata"],
+  },
 
   // ---------------- Anillos de Kaion ----------------
   {
@@ -685,6 +698,19 @@ export const NPCS: NpcDef[] = [
     role: "mascotas",
     dialogue: ["Cada mascota que me traes vale más que la anterior. Sigue trayendo."],
   },
+  {
+    id: "mecanica_flotante",
+    name: "Mecánica Flotante",
+    stage: "planeta_anillos",
+    pos: [0, -300],
+    color: "#8fa8ff",
+    role: "historia",
+    dialogue: [
+      "Entre estos anillos flota media nave... la otra mitad está escondida quién sabe dónde.",
+      "Tráeme las 3 piezas y demuéstrame que puedes con Nébula-9, y la reconstruyo encantada.",
+    ],
+    missionIds: ["m_nave_anillos"],
+  },
 
   // ---------------- Luna de Cristal ----------------
   {
@@ -735,6 +761,19 @@ export const NPCS: NpcDef[] = [
     color: "#dffeff",
     role: "mascotas",
     dialogue: ["Tu mascota resuena con un futuro que aún no ha pasado. Vendémela."],
+  },
+  {
+    id: "arquitecto_cristal",
+    name: "Arquitecta de Cristal",
+    stage: "planeta_cristal",
+    pos: [0, -340],
+    color: "#8fa8ff",
+    role: "historia",
+    dialogue: [
+      "El cristal recuerda una nave que surcó estos cielos hace eones. Sus piezas siguen aquí, esperando.",
+      "Derrota a Prisma Eterna y tráeme las 3 piezas escondidas. Será la última nave que reconstruya... por ahora.",
+    ],
+    missionIds: ["m_nave_cristal"],
   },
 ];
 

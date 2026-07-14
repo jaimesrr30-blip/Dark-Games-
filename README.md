@@ -50,8 +50,22 @@ npm run preview
   jefe propio, vendedor y comprador de mascotas exclusivos, guarida, puerta
   secreta, mascotas/cofres, decoración temática (chozas/puestos colocados a
   propósito junto a los NPCs, no al azar) y varias misiones secundarias
-  propias además de las que genera el resto de sistemas. Se desbloquean en
-  orden derrotando al jefe del planeta anterior.
+  propias además de las que genera el resto de sistemas.
+- **Las llaves de los planetas no están ahí sin más**: cada guardián vive en
+  una zona bloqueada que hay que desbloquear a mano y con una mecánica
+  distinta por planeta —
+  **Planeta Escarlata**: reúne tablones de piedra escondidos y constrúyele
+  un puente; **Anillos de Kaion**: encuentra núcleos de energía y activa un
+  generador antigravedad que eleva la plataforma; **Luna de Cristal**:
+  encuentra un cristal resonante y actívalo en el altar para abrir el domo.
+  Una vez dentro, el guardián no pide dinero ni partido: pide un favor
+  personal (encontrarle algo que perdió en otra parte del planeta, desde un
+  móvil hasta un casco de piloto) y solo entonces da la llave.
+- **Naves locales**: cada planeta esconde 3 piezas de una nave propia, muy
+  repartidas por todo el mapa. Llevárselas al mecánico del planeta —después
+  de derrotar a su jefe— la reconstruye y desbloquea el siguiente planeta,
+  con su propia animación de despegue. Derrotar al jefe solo no basta para
+  avanzar: hace falta también la nave.
 - **9 etapas** (Plaza Central + 8 zonas temáticas: ciudad futurista, desierto,
   bosque mágico, volcán, reino helado, islas flotantes, laboratorio, reino
   celestial), cada una un área 2D abierta con su propia ambientación,
@@ -117,7 +131,11 @@ npm run preview
   tormenta de arena en el desierto, hojas mágicas en el bosque, ventisca en
   el reino helado, aurora en las islas, lluvia de datos en el laboratorio).
 - **Dificultad progresiva**: los rivales de entrenamiento, guardianes y
-  jefes son más rápidos y agresivos cuanto más avanzada esté la etapa.
+  jefes son más rápidos y agresivos cuanto más avanzada esté la etapa. La IA
+  predice la trayectoria del balón en vez de perseguir solo su posición
+  actual, se defiende colocándose entre el balón y su portería, y con más
+  habilidad dirige mejor el golpe hacia el centro de la portería rival y usa
+  el turbo con más agresividad.
 - **Piezas de cohete**: 4 piezas escondidas por el Reino Celestial más el
   motor que suelta el Campeón Eterno al ser derrotado completan el final.
 - Economía con monedas y diamantes, niveles/XP, tienda de cosméticos y
@@ -135,12 +153,15 @@ npm run preview
   colisiones de coche-coche perfectamente realistas).
 - El Sistema Solar tiene 3 planetas por ahora; añadir más sigue el mismo
   patrón de datos que los 3 actuales (etapa + NPCs + spawns + misiones).
+- La mecánica "resonancia" de la Luna de Cristal usa un único cristal por
+  guardián (no una secuencia de orden en un altar compartido); mantiene la
+  exploración y el desbloqueo del domo, pero simplifica el puzzle de orden.
 
 ## Estructura del proyecto
 
 ```
 src/
-  data/       -> rarezas, etapas, items, tiendas, mascotas, misiones, NPCs/guardianes, cofres/spawns
+  data/       -> rarezas, etapas, items, tiendas, mascotas, misiones, NPCs/guardianes, cofres/spawns, zonas de guardián
   state/      -> estado global del juego (economía, inventario, llaves, progreso, guardado)
   core/       -> entrada de teclado, cámara 2D
   entities/   -> coche del jugador y NPCs (dibujo 2D en canvas)

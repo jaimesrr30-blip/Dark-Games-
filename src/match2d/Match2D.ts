@@ -249,20 +249,35 @@ export class Match2D {
   }
 
   private computeAiInput() {
-    const toBallX = this.ball.x - this.opponent.x;
-    const toBallY = this.ball.y - this.opponent.y;
+    // Cuanto más hábil el rival, más lejos predice la trayectoria del balón
+    // en vez de perseguir solo su posición actual: se siente más "vivo".
+    const leadT = 0.12 + this.skill * 0.3;
+    const predBallX = this.ball.x + this.ball.vx * leadT;
+    const predBallY = this.ball.y + this.ball.vy * leadT;
+
+    const toBallX = predBallX - this.opponent.x;
+    const toBallY = predBallY - this.opponent.y;
     const dist = Math.hypot(toBallX, toBallY);
     const defending = this.ball.x > this.width * 0.15;
-    let targetX = this.ball.x + 40;
-    let targetY = this.ball.y;
+
+    let targetX: number;
+    let targetY: number;
     if (!defending) {
+      // Postura defensiva: se coloca entre el balón y su propia portería.
       targetX = this.width / 2 - 140;
-      targetY = this.ball.y * 0.5;
+      targetY = predBallY * 0.5;
+    } else {
+      // Ataca hacia el balón previsto; con más habilidad, desvía el golpe
+      // hacia el centro de la portería rival en vez de solo despejar.
+      targetX = predBallX + 40;
+      targetY = this.skill > 0.55 ? predBallY * (1 - Math.min(0.6, (this.skill - 0.55) * 1.3)) : predBallY;
     }
+
     const dx = targetX - this.opponent.x;
     const dy = targetY - this.opponent.y;
     const len = Math.hypot(dx, dy) || 1;
-    const boost = dist < 260 && Math.random() < 0.01 + this.skill * 0.06;
+    const boostRange = 220 + this.skill * 120;
+    const boost = dist < boostRange && Math.random() < 0.012 + this.skill * 0.1;
     return { x: dx / len, y: dy / len, boost };
   }
 

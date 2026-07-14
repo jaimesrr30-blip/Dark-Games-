@@ -1,6 +1,6 @@
 import type { OwnedPet } from "../data/pets";
 import type { StageId } from "../data/stages";
-import { nextInProgression } from "../data/stages";
+import { nextInProgression, PLANET_ORDER } from "../data/stages";
 import { MISSIONS, type MissionDef } from "../data/missions";
 import { ITEMS } from "../data/items";
 import { guardiansForStage } from "../data/npcs";
@@ -37,6 +37,8 @@ export interface SaveData {
   keysCollected: Record<string, boolean>;
   puzzleItemsCollected: Record<string, boolean>;
   hideoutsDefeated: Record<string, boolean>;
+  zonesUnlocked: Record<string, boolean>;
+  planetShipsBuilt: Record<string, boolean>;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -78,6 +80,8 @@ function defaultSave(): SaveData {
     keysCollected: {},
     puzzleItemsCollected: {},
     hideoutsDefeated: {},
+    zonesUnlocked: {},
+    planetShipsBuilt: {},
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -216,8 +220,12 @@ export class GameState {
   defeatBoss(stage: StageId) {
     if (!this.data.defeatedBosses.includes(stage)) {
       this.data.defeatedBosses.push(stage);
-      const next = nextInProgression(stage);
-      if (next && !this.isStageUnlocked(next)) this.data.unlockedStages.push(next);
+      // En los planetas, el siguiente no se desbloquea solo por ganar al jefe:
+      // hace falta además reconstruir la nave local con sus piezas escondidas.
+      if (!(PLANET_ORDER as StageId[]).includes(stage)) {
+        const next = nextInProgression(stage);
+        if (next && !this.isStageUnlocked(next)) this.data.unlockedStages.push(next);
+      }
       this.save();
       this.emit();
     }
@@ -341,6 +349,32 @@ export class GameState {
 
   countPuzzleItems(ids: string[]): number {
     return ids.filter((id) => this.hasPuzzleItem(id)).length;
+  }
+
+  // ---------- Zonas de guardián (puentes/generadores/altares) ----------
+  isZoneUnlocked(id: string): boolean {
+    return !!this.data.zonesUnlocked[id];
+  }
+
+  unlockZone(id: string) {
+    if (this.data.zonesUnlocked[id]) return false;
+    this.data.zonesUnlocked[id] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  // ---------- Naves locales de cada planeta ----------
+  isPlanetShipBuilt(stage: string): boolean {
+    return !!this.data.planetShipsBuilt[stage];
+  }
+
+  buildPlanetShip(stage: string) {
+    if (this.data.planetShipsBuilt[stage]) return false;
+    this.data.planetShipsBuilt[stage] = true;
+    this.save();
+    this.emit();
+    return true;
   }
 
   // ---------- Vender mascotas ----------

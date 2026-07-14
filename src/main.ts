@@ -8,13 +8,23 @@ import { visualFromState } from "./entities/carVisual";
 import { Npc2DInstance } from "./entities/Npc2D";
 import { NPCS, type NpcDef } from "./data/npcs";
 import { MISSIONS } from "./data/missions";
-import { STAGES, STAGE_ORDER, PLANET_ORDER, type StageId } from "./data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, nextPlanet, type StageId } from "./data/stages";
 import { Stage2D } from "./stage/Stage2D";
 import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
 import { Match2D } from "./match2d/Match2D";
 import { Interior2D } from "./stage/Interior2D";
 import { HideoutInterior2D } from "./stage/HideoutInterior2D";
-import { PYRAMID_BUTTONS, SECRET_DOORS, pyramidPos, ROCKET_PARTS, ROCKET_ENGINE_ID, HIDEOUTS, type HideoutSpawn } from "./data/spawns";
+import {
+  PYRAMID_BUTTONS,
+  SECRET_DOORS,
+  pyramidPos,
+  ROCKET_PARTS,
+  ROCKET_ENGINE_ID,
+  HIDEOUTS,
+  planetShipParts,
+  type HideoutSpawn,
+} from "./data/spawns";
+import { ZONE_QUESTS, zoneQuestsForStage, zoneQuestForGuardian, type ZoneQuest, type ZoneUnlockKind } from "./data/zoneQuests";
 import { petSellPrice } from "./data/pets";
 import { hashString } from "./utils/random";
 
@@ -50,6 +60,8 @@ let ceremony: KeyCeremony | null = null;
 interface LaunchFx {
   t: number;
   total: number;
+  finalLabel: string;
+  onDone: () => void;
 }
 let launch: LaunchFx | null = null;
 
@@ -110,6 +122,11 @@ function talkToNpc(npc: Npc2DInstance) {
     talkToRocketEngineer(def);
     return;
   }
+  const mechanicPlanet = planetShipMechanics()[def.id];
+  if (mechanicPlanet) {
+    talkToPlanetMechanic(def, mechanicPlanet);
+    return;
+  }
   if (def.role === "guardian") {
     talkToGuardian(def);
     return;
@@ -148,7 +165,7 @@ function talkToRocketEngineer(def: NpcDef) {
       ui.showEnding(() => {
         gs.unlockStage(PLANET_ORDER[0]);
         ui.setSolarSystemButtonVisible(true);
-        beginRocketLaunch();
+        beginLaunch("Bienvenido al Sistema Solar", () => enterSolarMap());
       });
       gs.notifyEvent("hablarCon", def.id, 1);
     } else {
@@ -159,15 +176,20 @@ function talkToRocketEngineer(def: NpcDef) {
 
 function talkToGuardian(def: NpcDef) {
   const g = def.guardian!;
+  if (gs.hasKey(g.keyId)) {
+    ui.openDialogue(def.name, def.dialogue, () => ui.toast(g.alreadyLine));
+    return;
+  }
+  if (def.id === "custodio_piramide") {
+    ui.openDialogue(def.name, def.dialogue, () => talkToPyramidGuardian(def));
+    return;
+  }
+  const zone = zoneQuestForGuardian(def.id);
+  if (zone) {
+    talkToZoneGuardian(def, zone);
+    return;
+  }
   ui.openDialogue(def.name, def.dialogue, () => {
-    if (gs.hasKey(g.keyId)) {
-      ui.toast(g.alreadyLine);
-      return;
-    }
-    if (def.id === "custodio_piramide") {
-      talkToPyramidGuardian(def);
-      return;
-    }
     ui.openGuardianModal(def, (action) => {
       if (action === "payAndPlay") {
         if (gs.spend(g.priceCoins, "monedas")) {
@@ -178,6 +200,60 @@ function talkToGuardian(def: NpcDef) {
         }
       }
     });
+  });
+}
+
+function talkToZoneGuardian(def: NpcDef, zone: ZoneQuest) {
+  if (!gs.isZoneUnlocked(zone.id)) {
+    ui.toast(`Parece que no hay forma de llegar hasta ${def.name} todavía...`);
+    return;
+  }
+  const lines = [...def.dialogue, zone.askLine];
+  ui.openDialogue(def.name, lines, () => {
+    if (gs.hasPuzzleItem(zone.favorItemId)) {
+      gs.grantKey(def.guardian!.keyId);
+      ui.toast(zone.thanksLine, "raro");
+    } else {
+      ui.toast(`Todavía no encontraste lo que pidió ${def.name}: ${zone.favorLabel.toLowerCase()}.`);
+    }
+  });
+}
+
+function planetShipMechanics(): Record<string, StageId> {
+  return {
+    mecanico_polvo: "planeta_escarlata",
+    mecanica_flotante: "planeta_anillos",
+    arquitecto_cristal: "planeta_cristal",
+  };
+}
+
+function talkToPlanetMechanic(def: NpcDef, planetStage: StageId) {
+  ui.openDialogue(def.name, def.dialogue, () => {
+    gs.notifyEvent("hablarCon", def.id, 1);
+    if (gs.isPlanetShipBuilt(planetStage)) {
+      ui.toast("La nave ya está lista. Usa el Sistema Solar cuando quieras viajar.", "raro");
+      return;
+    }
+    if (!gs.isBossDefeated(planetStage)) {
+      ui.toast(`Antes de tocar la nave, demuéstrame que puedes con ${STAGES[planetStage].bossName}.`);
+      return;
+    }
+    const parts = planetShipParts(planetStage);
+    const have = gs.countPuzzleItems(parts.map((p) => p.id));
+    if (have < parts.length) {
+      ui.toast(`Llevas ${have}/${parts.length} piezas de la nave escondidas por ${STAGES[planetStage].name}.`);
+      return;
+    }
+    gs.buildPlanetShip(planetStage);
+    const next = nextPlanet(planetStage);
+    if (next) {
+      gs.unlockStage(next);
+      ui.toast(`¡Nave reconstruida! ${STAGES[next].name} ya está disponible.`, "raro");
+      beginLaunch(`Rumbo a ${STAGES[next].name}`, () => enterSolarMap());
+    } else {
+      ui.toast("¡Nave reconstruida! Has completado el sistema solar entero... por ahora.", "raro");
+      beginLaunch("Has conquistado el Sistema Solar", () => enterSolarMap());
+    }
   });
 }
 
@@ -330,8 +406,8 @@ function beginHideoutMatch(h: HideoutSpawn) {
 
 // ---------------- Sistema Solar ----------------
 
-function beginRocketLaunch() {
-  launch = { t: 0, total: 3.2 };
+function beginLaunch(finalLabel: string, onDone: () => void) {
+  launch = { t: 0, total: 3.2, finalLabel, onDone };
   mode = "launch";
   ui.hideWorldMenus();
   ui.setInteractPrompt(null);
@@ -426,6 +502,77 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     }
   }
 
+  for (const part of planetShipParts(stage.def.id)) {
+    if (gs.hasPuzzleItem(part.id)) continue;
+    const d = Math.hypot(p.x - part.pos[0], p.y - part.pos[1]);
+    if (d < 45 && (!best || d < best.dist)) {
+      const allParts = planetShipParts(stage.def.id);
+      best = {
+        dist: d,
+        label: "Recoger pieza de nave",
+        run: () => {
+          gs.collectPuzzleItem(part.id);
+          gs.notifyEvent("recogerPiezas", stage.def.id, 1);
+          const have = gs.countPuzzleItems(allParts.map((r) => r.id));
+          ui.toast(`Pieza de nave recogida (${have}/${allParts.length}).`);
+        },
+      };
+    }
+  }
+
+  for (const zq of zoneQuestsForStage(stage.def.id)) {
+    for (const m of zq.materials) {
+      if (gs.hasPuzzleItem(m.id)) continue;
+      const d = Math.hypot(p.x - m.pos[0], p.y - m.pos[1]);
+      if (d < 40 && (!best || d < best.dist)) {
+        best = {
+          dist: d,
+          label: `Recoger ${zq.materialLabel}`,
+          run: () => {
+            gs.collectPuzzleItem(m.id);
+            const have = zq.materials.filter((mm) => gs.hasPuzzleItem(mm.id)).length;
+            ui.toast(`${zq.materialLabel[0].toUpperCase()}${zq.materialLabel.slice(1)} recogido (${have}/${zq.materials.length}).`);
+          },
+        };
+      }
+    }
+
+    if (!gs.hasPuzzleItem(zq.favorItemId)) {
+      const d = Math.hypot(p.x - zq.favorItemPos[0], p.y - zq.favorItemPos[1]);
+      if (d < 40 && (!best || d < best.dist)) {
+        const guardianName = NPCS.find((n) => n.id === zq.guardianId)?.name ?? "su dueño";
+        best = {
+          dist: d,
+          label: zq.favorLabel,
+          run: () => {
+            gs.collectPuzzleItem(zq.favorItemId);
+            ui.toast(`¡Objeto encontrado! Llévaselo a ${guardianName}.`, "raro");
+          },
+        };
+      }
+    }
+
+    if (!gs.isZoneUnlocked(zq.id)) {
+      const haveAll = zq.materials.every((m) => gs.hasPuzzleItem(m.id));
+      const have = zq.materials.filter((m) => gs.hasPuzzleItem(m.id)).length;
+      const d = Math.hypot(p.x - zq.unlockPos[0], p.y - zq.unlockPos[1]);
+      if (d < 60 && (!best || d < best.dist)) {
+        best = {
+          dist: d,
+          label: haveAll ? zoneActionLabel(zq.kind) : `Faltan ${zq.materials.length - have} ${zq.materialLabel}(s)`,
+          run: () => {
+            if (!haveAll) {
+              ui.toast(`Todavía te faltan materiales (${have}/${zq.materials.length}).`);
+              return;
+            }
+            gs.unlockZone(zq.id);
+            ui.toast(zoneUnlockToast(zq.kind), "raro");
+          },
+        };
+      }
+    }
+  }
+
   const door = SECRET_DOORS.find((d) => d.stage === stage.def.id);
   if (door) {
     const d = Math.hypot(p.x - door.pos[0], p.y - door.pos[1]);
@@ -506,6 +653,8 @@ function loop(tsMs: number) {
     stage.drawBossGate(ctx, camera, gs.stageKeysStatus(stage.def.id).ready, gs.isBossDefeated(stage.def.id));
     if (stage.def.id === "desierto") drawPyramidAndButtons();
     if (stage.def.id === "celestial") drawRocketParts();
+    drawPlanetShipParts();
+    drawZoneQuestFeatures();
     drawSecretDoor();
     drawHideoutDoor();
     stage.drawBounds(ctx, camera);
@@ -615,11 +764,12 @@ function loop(tsMs: number) {
     stage.drawProps(ctx, camera);
     stage.drawLandmarks(ctx, camera);
     if (launch.t < launch.total * 0.55) player.draw(ctx, camera, false);
-    drawLaunchFx(launch.t, launch.total);
+    drawLaunchFx(launch.t, launch.total, launch.finalLabel);
 
     if (launch.t >= launch.total) {
+      const onDone = launch.onDone;
       launch = null;
-      enterSolarMap();
+      onDone();
     }
   } else if (mode === "solarmap") {
     drawSolarSystemView(dt);
@@ -703,6 +853,116 @@ function drawRocketParts() {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
+  }
+}
+
+function drawPlanetShipParts() {
+  for (const part of planetShipParts(stage.def.id)) {
+    if (gs.hasPuzzleItem(part.id)) continue;
+    if (!camera.isVisible(part.pos[0], part.pos[1])) continue;
+    const [sx, sy] = camera.worldToScreen(part.pos[0], part.pos[1]);
+    const bob = Math.sin(performance.now() / 400 + part.pos[0]) * 4;
+    ctx.save();
+    ctx.translate(sx, sy + bob);
+    ctx.fillStyle = "#dfe7ff";
+    ctx.beginPath();
+    ctx.moveTo(0, -14);
+    ctx.lineTo(10, 6);
+    ctx.lineTo(0, 14);
+    ctx.lineTo(-10, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#ffd76b";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function zoneKindLabel(kind: ZoneUnlockKind): string {
+  return kind === "puente" ? "Puente" : kind === "generador" ? "Generador" : "Altar";
+}
+function zoneActionLabel(kind: ZoneUnlockKind): string {
+  return kind === "puente" ? "Construir el puente" : kind === "generador" ? "Activar el generador" : "Colocar el cristal";
+}
+function zoneUnlockToast(kind: ZoneUnlockKind): string {
+  return kind === "puente"
+    ? "¡Puente construido! Ya puedes cruzar."
+    : kind === "generador"
+      ? "¡Generador activado! La plataforma se eleva."
+      : "¡El cristal resuena! El domo se abre.";
+}
+function zoneMaterialColor(kind: ZoneUnlockKind): string {
+  return kind === "puente" ? "#c9a45c" : kind === "generador" ? "#8fd3ff" : "#7bf2ff";
+}
+function zoneUnlockedColor(kind: ZoneUnlockKind): string {
+  return kind === "puente" ? "#8a5a2a" : kind === "generador" ? "#7a5fd9" : "#3fc9d9";
+}
+
+function drawZoneQuestFeatures() {
+  for (const zq of zoneQuestsForStage(stage.def.id)) {
+    for (const m of zq.materials) {
+      if (gs.hasPuzzleItem(m.id)) continue;
+      if (!camera.isVisible(m.pos[0], m.pos[1])) continue;
+      const [sx, sy] = camera.worldToScreen(m.pos[0], m.pos[1]);
+      const bob = Math.sin(performance.now() / 500 + m.pos[0]) * 3;
+      ctx.save();
+      ctx.translate(sx, sy + bob);
+      ctx.fillStyle = zoneMaterialColor(zq.kind);
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (!gs.hasPuzzleItem(zq.favorItemId) && camera.isVisible(zq.favorItemPos[0], zq.favorItemPos[1])) {
+      const [sx, sy] = camera.worldToScreen(zq.favorItemPos[0], zq.favorItemPos[1]);
+      const bob = Math.sin(performance.now() / 400 + zq.favorItemPos[1]) * 4;
+      ctx.save();
+      ctx.translate(sx, sy + bob);
+      ctx.fillStyle = "#ffe066";
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#7a5c00";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (camera.isVisible(zq.unlockPos[0], zq.unlockPos[1], 100)) {
+      const [sx, sy] = camera.worldToScreen(zq.unlockPos[0], zq.unlockPos[1]);
+      const unlocked = gs.isZoneUnlocked(zq.id);
+      const have = zq.materials.filter((m) => gs.hasPuzzleItem(m.id)).length;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.globalAlpha = unlocked ? 0.9 : 0.6;
+      ctx.fillStyle = unlocked ? zoneUnlockedColor(zq.kind) : "#3a3a3a";
+      roundRect(ctx, -42, -14, 84, 28, 6);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = unlocked ? "#fff" : "#888";
+      ctx.lineWidth = 2;
+      roundRect(ctx, -42, -14, 84, 28, 6);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.font = "bold 11px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 3;
+      const label = unlocked ? `${zoneKindLabel(zq.kind)} listo` : `${zoneKindLabel(zq.kind)} (${have}/${zq.materials.length})`;
+      ctx.fillText(label, sx, sy - 26);
+      ctx.shadowBlur = 0;
+    }
   }
 }
 
@@ -846,7 +1106,7 @@ function drawPortalFx() {
   ctx.restore();
 }
 
-function drawLaunchFx(t: number, total: number) {
+function drawLaunchFx(t: number, total: number, finalLabel: string) {
   const [px, py] = camera.worldToScreen(player.x, player.y);
   const w = camera.viewW;
   const h = camera.viewH;
@@ -919,7 +1179,7 @@ function drawLaunchFx(t: number, total: number) {
   ctx.fillStyle = "#ffe9a8";
   ctx.shadowColor = "rgba(0,0,0,0.85)";
   ctx.shadowBlur = 8;
-  const label = t < p1 ? "¡Despegando!" : t < p2 ? "Cruzando la atmósfera..." : "Bienvenido al Sistema Solar";
+  const label = t < p1 ? "¡Despegando!" : t < p2 ? "Cruzando la atmósfera..." : finalLabel;
   ctx.fillText(label, w / 2, h * 0.16);
   ctx.restore();
 }

@@ -14,6 +14,7 @@ import { buildInteractables2D, type Interactable2D } from "./stage/Interactables
 import { Match2D } from "./match2d/Match2D";
 import { Interior2D } from "./stage/Interior2D";
 import { HideoutInterior2D } from "./stage/HideoutInterior2D";
+import { ZoneInterior2D } from "./stage/ZoneInterior2D";
 import {
   PYRAMID_BUTTONS,
   SECRET_DOORS,
@@ -44,7 +45,9 @@ let interactables: Interactable2D[] = [];
 let match: Match2D | null = null;
 let interior: Interior2D | null = null;
 let hideoutInterior: HideoutInterior2D | null = null;
-let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" = "world";
+let zoneInterior: ZoneInterior2D | null = null;
+let zoneInteriorNpc: Npc2DInstance | null = null;
+let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" | "zoneinterior" = "world";
 let pendingGuardian: NpcDef | null = null;
 let pendingHideout: HideoutSpawn | null = null;
 let matchEnding = false;
@@ -105,7 +108,9 @@ function npcHasContent(def: NpcDef): boolean {
 function loadStage(id: StageId, pos?: [number, number] | null) {
   stage = new Stage2D(id);
   interactables = buildInteractables2D(id);
-  npcInstances = NPCS.filter((n) => n.stage === id).map((def) => new Npc2DInstance(def, def.pos[0], def.pos[1]));
+  // Los guardianes de zona (puente/generador/resonancia) no viven en el mapa
+  // abierto: se llega a ellos cruzando desde el punto de desbloqueo.
+  npcInstances = NPCS.filter((n) => n.stage === id && !zoneQuestForGuardian(n.id)).map((def) => new Npc2DInstance(def, def.pos[0], def.pos[1]));
 
   if (!player) player = new CarBody2D(visualFromState(gs));
   const spawn = pos ?? stage.spawnPoint;
@@ -227,6 +232,9 @@ function planetShipMechanics(): Record<string, StageId> {
   };
 }
 
+const REQUIRED_FUEL = 5;
+const FUEL_PRICE_PER_UNIT = 260;
+
 function talkToPlanetMechanic(def: NpcDef, planetStage: StageId) {
   ui.openDialogue(def.name, def.dialogue, () => {
     gs.notifyEvent("hablarCon", def.id, 1);
@@ -244,17 +252,41 @@ function talkToPlanetMechanic(def: NpcDef, planetStage: StageId) {
       ui.toast(`Llevas ${have}/${parts.length} piezas de la nave escondidas por ${STAGES[planetStage].name}.`);
       return;
     }
-    gs.buildPlanetShip(planetStage);
-    const next = nextPlanet(planetStage);
-    if (next) {
-      gs.unlockStage(next);
-      ui.toast(`¡Nave reconstruida! ${STAGES[next].name} ya está disponible.`, "raro");
-      beginLaunch(`Rumbo a ${STAGES[next].name}`, () => enterSolarMap());
-    } else {
-      ui.toast("¡Nave reconstruida! Has completado el sistema solar entero... por ahora.", "raro");
-      beginLaunch("Has conquistado el Sistema Solar", () => enterSolarMap());
-    }
+    tryBuildShip(planetStage, def.name);
   });
+}
+
+function tryBuildShip(planetStage: StageId, mechanicName: string) {
+  const fuelHave = gs.data.stellarFuel;
+  if (fuelHave < REQUIRED_FUEL) {
+    ui.openFuelModal(mechanicName, fuelHave, REQUIRED_FUEL, FUEL_PRICE_PER_UNIT, () => {
+      const missing = REQUIRED_FUEL - fuelHave;
+      const cost = missing * FUEL_PRICE_PER_UNIT;
+      if (gs.spend(cost, "monedas")) {
+        gs.addFuel(missing);
+        ui.toast("¡Combustible comprado! Construyendo la nave...", "raro");
+        finishShipBuild(planetStage);
+      } else {
+        ui.toast("No tienes suficiente dinero para comprar el combustible que falta.");
+      }
+    });
+    return;
+  }
+  finishShipBuild(planetStage);
+}
+
+function finishShipBuild(planetStage: StageId) {
+  gs.spendFuel(REQUIRED_FUEL);
+  gs.buildPlanetShip(planetStage);
+  const next = nextPlanet(planetStage);
+  if (next) {
+    gs.unlockStage(next);
+    ui.toast(`¡Nave reconstruida! ${STAGES[next].name} ya está disponible.`, "raro");
+    beginLaunch(`Rumbo a ${STAGES[next].name}`, () => enterSolarMap());
+  } else {
+    ui.toast("¡Nave reconstruida! Has completado el sistema solar entero... por ahora.", "raro");
+    beginLaunch("Has conquistado el Sistema Solar", () => enterSolarMap());
+  }
 }
 
 function fieldThemeForGuardian(def: NpcDef): StageId {
@@ -402,6 +434,34 @@ function beginHideoutMatch(h: HideoutSpawn) {
   mode = "match";
   ui.showMatchHUD();
   ui.setMatchPetBadge(match.activePetBadge);
+}
+
+// ---------------- Zonas de guardián (puente/generador/resonancia) ----------------
+
+function zoneCrossLabel(kind: ZoneUnlockKind): string {
+  return kind === "puente" ? "Cruzar el puente" : kind === "generador" ? "Subir a la plataforma" : "Entrar al domo";
+}
+
+function enterZoneInterior(zone: ZoneQuest) {
+  const guardianDef = NPCS.find((n) => n.id === zone.guardianId);
+  if (!guardianDef) return;
+  zoneInterior = new ZoneInterior2D(zone);
+  zoneInteriorNpc = new Npc2DInstance(guardianDef, zoneInterior.guardianPos[0], zoneInterior.guardianPos[1]);
+  player.setPosition(zoneInterior.spawnPos[0], zoneInterior.spawnPos[1]);
+  camera.snap(player.x, player.y);
+  mode = "zoneinterior";
+  ui.hideWorldMenus();
+}
+
+function exitZoneInterior() {
+  if (!zoneInterior) return;
+  const zone = zoneInterior.zone;
+  zoneInterior = null;
+  zoneInteriorNpc = null;
+  mode = "world";
+  player.setPosition(zone.unlockPos[0], zone.unlockPos[1] + 60);
+  camera.snap(player.x, player.y);
+  ui.showWorldMenus();
 }
 
 // ---------------- Sistema Solar ----------------
@@ -569,6 +629,11 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
             ui.toast(zoneUnlockToast(zq.kind), "raro");
           },
         };
+      }
+    } else {
+      const d = Math.hypot(p.x - zq.unlockPos[0], p.y - zq.unlockPos[1]);
+      if (d < 60 && (!best || d < best.dist)) {
+        best = { dist: d, label: zoneCrossLabel(zq.kind), run: () => enterZoneInterior(zq) };
       }
     }
   }
@@ -740,6 +805,29 @@ function loop(tsMs: number) {
     }
     ui.setInteractPrompt(hLabel);
     if (hLabel && hAction && input.wasPressed("KeyE")) hAction();
+  } else if (mode === "zoneinterior" && zoneInterior && zoneInteriorNpc) {
+    if (!ui.anyModalOpen()) {
+      player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, zoneInterior.bounds);
+    }
+    zoneInterior.update(dt);
+    camera.follow(player.x, player.y, { w: 640, h: 520 }, 0.15);
+    zoneInterior.draw(ctx, camera);
+    zoneInteriorNpc.draw(ctx, camera, dt, npcHasContent(zoneInteriorNpc.def));
+    player.draw(ctx, camera, player.speed > 20);
+
+    const dNpc = Math.hypot(player.x - zoneInterior.guardianPos[0], player.y - zoneInterior.guardianPos[1]);
+    const dExitZ = Math.hypot(player.x - zoneInterior.exitPos[0], player.y - zoneInterior.exitPos[1]);
+    let zLabel: string | null = null;
+    let zAction: (() => void) | null = null;
+    if (dNpc < 55) {
+      zLabel = `Hablar con ${zoneInteriorNpc.def.name} (guardián)`;
+      zAction = () => talkToNpc(zoneInteriorNpc!);
+    } else if (dExitZ < 45) {
+      zLabel = "Salir";
+      zAction = () => exitZoneInterior();
+    }
+    ui.setInteractPrompt(zLabel);
+    if (zLabel && zAction && input.wasPressed("KeyE")) zAction();
   } else if (mode === "ceremony" && ceremony) {
     ceremony.t += dt;
     camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height }, 0.2);

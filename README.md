@@ -58,14 +58,20 @@ npm run preview
   un puente; **Anillos de Kaion**: encuentra núcleos de energía y activa un
   generador antigravedad que eleva la plataforma; **Luna de Cristal**:
   encuentra un cristal resonante y actívalo en el altar para abrir el domo.
-  Una vez dentro, el guardián no pide dinero ni partido: pide un favor
-  personal (encontrarle algo que perdió en otra parte del planeta, desde un
-  móvil hasta un casco de piloto) y solo entonces da la llave.
-- **Naves locales**: cada planeta esconde 3 piezas de una nave propia, muy
-  repartidas por todo el mapa. Llevárselas al mecánico del planeta —después
-  de derrotar a su jefe— la reconstruye y desbloquea el siguiente planeta,
-  con su propia animación de despegue. Derrotar al jefe solo no basta para
-  avanzar: hace falta también la nave.
+  Cruzar el puente/subir a la plataforma/entrar al domo te **teletransporta a
+  una zona propia y decorada** (una pequeña dimensión aparte, con su propia
+  ambientación temática), donde vive el guardián. Allí no pide dinero ni
+  partido: pide un favor personal (encontrarle algo que perdió en otra parte
+  del planeta —hay que volver a salir a buscarlo—, desde un móvil hasta un
+  casco de piloto) y solo entonces da la llave.
+- **Naves locales y combustible estelar**: cada planeta esconde 3 piezas de
+  una nave propia, muy repartidas por todo el mapa. El mecánico del planeta
+  las monta —después de derrotar a su jefe— pero además necesita 5 unidades
+  de combustible estelar: se consiguen completando misiones secundarias del
+  planeta (dan de sobra si las completas casi todas) o comprando lo que
+  falte, caro, directamente al mecánico. Con todo listo reconstruye la nave
+  y desbloquea el siguiente planeta, con su propia animación de despegue.
+  Derrotar al jefe solo no basta para avanzar: hace falta también la nave.
 - **9 etapas** (Plaza Central + 8 zonas temáticas: ciudad futurista, desierto,
   bosque mágico, volcán, reino helado, islas flotantes, laboratorio, reino
   celestial), cada una un área 2D abierta con su propia ambientación,
@@ -165,7 +171,7 @@ src/
   state/      -> estado global del juego (economía, inventario, llaves, progreso, guardado)
   core/       -> entrada de teclado, cámara 2D
   entities/   -> coche del jugador y NPCs (dibujo 2D en canvas)
-  stage/      -> renderizado de cada etapa (fondo, props, landmarks, interiores secretos)
+  stage/      -> renderizado de cada etapa (fondo, props, landmarks, interiores secretos, zonas de guardián)
   match2d/    -> partidos: balón, campo, laberinto de jefe, IA, marcador, explosión de gol
   ui/         -> HUD, menús, mapa de etapas, garaje, tienda, negociación con guardianes, diálogos
   main.ts     -> punto de entrada, conecta todos los sistemas

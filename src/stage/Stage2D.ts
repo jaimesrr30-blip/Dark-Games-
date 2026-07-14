@@ -51,7 +51,7 @@ function buildProps(stage: StageDef): Prop[] {
   return props;
 }
 
-function drawProp(ctx: CanvasRenderingContext2D, type: PropType, color: string, scale: number, variant: number) {
+export function drawProp(ctx: CanvasRenderingContext2D, type: PropType, color: string, scale: number, variant: number) {
   ctx.save();
   ctx.scale(scale, scale);
   switch (type) {

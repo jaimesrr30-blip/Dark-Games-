@@ -241,6 +241,10 @@ body {
   transform: rotate(45deg);
   border-radius: 3px;
 }
+.icon-fuel {
+  background: radial-gradient(circle at 35% 30%, #ffe9ff, #d9b8ff);
+  border-radius: 50% 50% 50% 4px;
+}
 
 #level-panel {
   padding: 8px 14px;

@@ -35,6 +35,7 @@ export interface MissionDef {
   rewardMonedas: number;
   rewardDiamantes: number;
   rewardXp: number;
+  rewardFuel?: number;
   requires?: string[];
   hidden?: boolean;
 }
@@ -534,6 +535,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1800,
     rewardDiamantes: 45,
     rewardXp: 500,
+    rewardFuel: 2,
   },
   {
     id: "s_goles_escarlata",
@@ -546,6 +548,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1800,
     rewardDiamantes: 45,
     rewardXp: 500,
+    rewardFuel: 2,
   },
   {
     id: "s_partido_escarlata",
@@ -558,6 +561,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 1800,
     rewardDiamantes: 45,
     rewardXp: 500,
+    rewardFuel: 2,
   },
   {
     id: "m_escarlata_jefe",
@@ -584,6 +588,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2200,
     rewardDiamantes: 55,
     rewardXp: 600,
+    rewardFuel: 2,
   },
   {
     id: "s_goles_anillos",
@@ -596,6 +601,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2200,
     rewardDiamantes: 55,
     rewardXp: 600,
+    rewardFuel: 2,
   },
   {
     id: "s_partido_anillos",
@@ -608,6 +614,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2200,
     rewardDiamantes: 55,
     rewardXp: 600,
+    rewardFuel: 2,
   },
   {
     id: "m_anillos_jefe",
@@ -634,6 +641,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2800,
     rewardDiamantes: 70,
     rewardXp: 700,
+    rewardFuel: 2,
   },
   {
     id: "s_goles_cristal",
@@ -646,6 +654,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2800,
     rewardDiamantes: 70,
     rewardXp: 700,
+    rewardFuel: 2,
   },
   {
     id: "s_partido_cristal",
@@ -658,6 +667,7 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 2800,
     rewardDiamantes: 70,
     rewardXp: 700,
+    rewardFuel: 2,
   },
   {
     id: "m_cristal_jefe",

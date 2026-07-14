@@ -39,6 +39,7 @@ export interface SaveData {
   hideoutsDefeated: Record<string, boolean>;
   zonesUnlocked: Record<string, boolean>;
   planetShipsBuilt: Record<string, boolean>;
+  stellarFuel: number;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -82,6 +83,7 @@ function defaultSave(): SaveData {
     hideoutsDefeated: {},
     zonesUnlocked: {},
     planetShipsBuilt: {},
+    stellarFuel: 0,
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -300,6 +302,7 @@ export class GameState {
       prog.completed = true;
       this.addCurrency(def.rewardMonedas, def.rewardDiamantes);
       this.addXp(def.rewardXp);
+      if (def.rewardFuel) this.addFuel(def.rewardFuel);
     }
     this.save();
     this.emit();
@@ -372,6 +375,20 @@ export class GameState {
   buildPlanetShip(stage: string) {
     if (this.data.planetShipsBuilt[stage]) return false;
     this.data.planetShipsBuilt[stage] = true;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  addFuel(amount: number) {
+    this.data.stellarFuel += amount;
+    this.save();
+    this.emit();
+  }
+
+  spendFuel(amount: number): boolean {
+    if (this.data.stellarFuel < amount) return false;
+    this.data.stellarFuel -= amount;
     this.save();
     this.emit();
     return true;

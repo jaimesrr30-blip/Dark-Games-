@@ -186,6 +186,8 @@ export class UIManager {
     if (this.lastDiamonds !== null && diamonds > this.lastDiamonds) this.popPill("#hud-diamonds");
     this.lastCoins = coins;
     this.lastDiamonds = diamonds;
+    qs("#hud-fuel-pill").classList.toggle("hidden", d.stellarFuel <= 0 && !this.gs.isStageUnlocked(PLANET_ORDER[0]));
+    qs("#hud-fuel").textContent = String(d.stellarFuel);
     qs("#hud-level").textContent = `Nivel ${d.level}`;
     const need = xpForLevel(d.level);
     qs("#hud-xp-label").textContent = `${Math.floor(d.xp)} / ${need} XP`;
@@ -715,6 +717,26 @@ export class UIManager {
     qs<HTMLButtonElement>("#btn-guardian-leave").onclick = () => {
       qs("#modal-guardian").classList.remove("show");
       onAction("leave");
+    };
+  }
+
+  // ---------- Combustible estelar ----------
+  openFuelModal(npcName: string, have: number, required: number, pricePerUnit: number, onBuy: () => void) {
+    const missing = required - have;
+    const cost = missing * pricePerUnit;
+    qs("#modal-fuel").classList.add("show");
+    qs("#fuel-text").textContent =
+      `${npcName}: "Te faltan ${missing} unidades de combustible estelar (tienes ${have}/${required}). Te las puedo vender por ${pricePerUnit} monedas cada una."`;
+    const canAfford = this.gs.canAfford(cost, "monedas");
+    const buyBtn = qs<HTMLButtonElement>("#btn-fuel-buy");
+    buyBtn.disabled = !canAfford;
+    qs("#fuel-buy-label").textContent = `Comprar ${missing} combustible por ${cost} monedas`;
+    buyBtn.onclick = () => {
+      qs("#modal-fuel").classList.remove("show");
+      onBuy();
+    };
+    qs<HTMLButtonElement>("#btn-fuel-leave").onclick = () => {
+      qs("#modal-fuel").classList.remove("show");
     };
   }
 

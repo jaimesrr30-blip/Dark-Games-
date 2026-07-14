@@ -26,6 +26,7 @@ export const UI_TEMPLATE = `
   <div class="currency-row">
     <div class="currency-pill panel"><span class="icon icon-coin"></span><span id="hud-coins">0</span></div>
     <div class="currency-pill panel"><span class="icon icon-diamond"></span><span id="hud-diamonds">0</span></div>
+    <div class="currency-pill panel hidden" id="hud-fuel-pill"><span class="icon icon-fuel"></span><span id="hud-fuel">0</span></div>
   </div>
   <div id="level-panel" class="panel">
     <div id="level-row"><span id="hud-level">Nivel 1</span><span id="hud-xp-label">0 / 100 XP</span></div>
@@ -106,6 +107,23 @@ export const UI_TEMPLATE = `
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="btn-arrow gold interactive" id="btn-guardian-pay"><span id="guardian-pay-label">Pagar</span> <span class="arrow-icon">➤</span></button>
         <button class="btn-arrow interactive" id="btn-guardian-leave">Ahora no, volveré <span class="arrow-icon">➤</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Combustible estelar -->
+<div class="modal-backdrop interactive" id="modal-fuel">
+  <div class="modal-window panel" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Combustible Estelar</div>
+      <button class="modal-close interactive" data-close="modal-fuel">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="fuel-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:18px;"></p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-arrow gold interactive" id="btn-fuel-buy"><span id="fuel-buy-label">Comprar</span> <span class="arrow-icon">➤</span></button>
+        <button class="btn-arrow interactive" id="btn-fuel-leave">Ahora no <span class="arrow-icon">➤</span></button>
       </div>
     </div>
   </div>

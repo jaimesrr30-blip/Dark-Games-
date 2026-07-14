@@ -11,7 +11,7 @@ import { MISSIONS } from "./data/missions";
 import { STAGES, STAGE_ORDER, PLANET_ORDER, STATION_ORDER, nextPlanet, solarDestinations, type StageId } from "./data/stages";
 import { Stage2D } from "./stage/Stage2D";
 import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
-import { Match2D } from "./match2d/Match2D";
+import { Match2D, type MatchResult2D } from "./match2d/Match2D";
 import { Interior2D } from "./stage/Interior2D";
 import { HideoutInterior2D } from "./stage/HideoutInterior2D";
 import { ZoneInterior2D } from "./stage/ZoneInterior2D";
@@ -31,6 +31,8 @@ import { ZONE_QUESTS, zoneQuestsForStage, zoneQuestForGuardian, type ZoneQuest, 
 import { parkourForGuardian, type ParkourChallenge } from "./data/parkour";
 import { ECLIPSE_FRAGMENTS, SOL_PILLARS, SOL_RIDDLE_SOLVED_ID, eclipseFragmentIds } from "./data/solRiddle";
 import { petSellPrice } from "./data/pets";
+import { nextWeaponTier, weaponForTier, AMMO_PRICE_PER_UNIT } from "./data/weapons";
+import { monstersForStage, type MonsterSpawn } from "./data/monsters";
 import { hashString } from "./utils/random";
 
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -56,8 +58,110 @@ let pendingParkourGuardian: NpcDef | null = null;
 let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" | "zoneinterior" | "parkour" = "world";
 let pendingGuardian: NpcDef | null = null;
 let pendingHideout: HideoutSpawn | null = null;
+let pendingGauntlet: number | null = null;
 let matchEnding = false;
 let portalFxT = 0;
+
+// ---------------- Gauntlet de Jefes Corruptos (El Umbral) ----------------
+interface GauntletFight {
+  name: string;
+  skill: number;
+  color: string;
+  fieldTheme: StageId;
+}
+const GAUNTLET_BOSSES: GauntletFight[] = [
+  { name: "Eco Corrupto de Neo-Piloto X9", skill: 0.9, color: STAGES.desierto.accentColor, fieldTheme: "desierto" },
+  { name: "Eco Corrupto de Ignarok", skill: 1.0, color: STAGES.volcan.accentColor, fieldTheme: "volcan" },
+  { name: "Eco Corrupto de El Campeón Eterno", skill: 1.1, color: STAGES.celestial.accentColor, fieldTheme: "celestial" },
+  { name: "Eco Corrupto de Prisma Eterna", skill: 1.2, color: STAGES.planeta_cristal.accentColor, fieldTheme: "planeta_cristal" },
+  { name: "Eco Corrupto de Heliarca", skill: 1.3, color: STAGES.sol.accentColor, fieldTheme: "sol" },
+];
+const GAUNTLET_PORTAL_POS: [number, number] = [0, -760];
+
+function beginGauntlet() {
+  pendingGauntlet = 0;
+  beginGauntletFight(0);
+}
+
+function beginGauntletFight(index: number) {
+  const boss = GAUNTLET_BOSSES[index];
+  match = new Match2D(gs, input, "boss", stage.def.id, boss.skill, boss.color, boss.fieldTheme, false, undefined);
+  camera.snap(0, 0);
+  mode = "match";
+  ui.showMatchHUD();
+  ui.setMatchPetBadge(match.activePetBadge);
+  ui.toast(`Ronda ${index + 1}/5: ${boss.name}`, "epico");
+}
+
+function endGauntletFight(r: MatchResult2D) {
+  const index = pendingGauntlet!;
+  ui.hideMatchHUD();
+  if (!r.won) {
+    pendingGauntlet = null;
+    ui.showMatchEnd(false, r.scoreA, r.scoreB, "El Gauntlet termina aquí. No pierdes nada salvo el intento: puedes volver a intentarlo cuando quieras.", () => {
+      match = null;
+      matchEnding = false;
+      mode = "world";
+      ui.showWorldMenus();
+    });
+    return;
+  }
+  const next = index + 1;
+  if (next < GAUNTLET_BOSSES.length) {
+    ui.showMatchEnd(true, r.scoreA, r.scoreB, `¡${GAUNTLET_BOSSES[index].name} superado! Ronda ${next + 1}/5 a continuación...`, () => {
+      match = null;
+      matchEnding = false;
+      pendingGauntlet = next;
+      beginGauntletFight(next);
+    });
+    return;
+  }
+  pendingGauntlet = null;
+  gs.notifyEvent("derrotarJefe", "el_umbral", 1);
+  ui.showMatchEnd(true, r.scoreA, r.scoreB, "¡Gauntlet completo! Los 5 ecos corruptos, vencidos. +30.000 monedas · +800 diamantes · +10.000 XP", () => {
+    match = null;
+    matchEnding = false;
+    mode = "world";
+    ui.showWorldMenus();
+  });
+}
+
+function talkToGauntletPortal() {
+  ui.openParkourModal(
+    "El Gauntlet de Jefes Corruptos",
+    "Cinco ecos corruptos, cada vez más fuertes. Nadie lo ha completado entero todavía.",
+    "Si entras, no hay marcha atrás a mitad de camino: pierdes o ganas, todo o nada. No pierdes nada material si caes... salvo el intento.",
+    () => beginGauntlet()
+  );
+}
+
+// ---------------- Monstruos sueltos (El Umbral) ----------------
+let monsterHp: Record<string, number> = {};
+
+function monsterCurrentHp(m: MonsterSpawn): number {
+  if (monsterHp[m.id] === undefined) monsterHp[m.id] = m.maxHp;
+  return monsterHp[m.id];
+}
+
+function shootMonster(m: MonsterSpawn) {
+  if (!gs.spendAmmo(1)) {
+    ui.toast("Te has quedado sin balas. Cómpralas en la Armería del Umbral.");
+    return;
+  }
+  const weapon = weaponForTier(gs.data.weaponTier);
+  const dmg = weapon ? weapon.damage : 0;
+  const hp = Math.max(0, monsterCurrentHp(m) - dmg);
+  monsterHp[m.id] = hp;
+  if (hp <= 0) {
+    gs.killMonster(m.id);
+    gs.addCurrency(m.rewardCoins, 0);
+    gs.addXp(m.rewardXp);
+    gs.notifyEvent("derrotarEnemigo", m.id, 1);
+    ui.toast(`¡${m.name} derrotado! +${m.rewardCoins} monedas · +${m.rewardXp} XP`, "raro");
+  } else {
+    ui.toast(`${m.name}: ${hp}/${m.maxHp} HP`);
+  }
+}
 
 // ---------------- Salud / muerte (solo en el espacio profundo) ----------------
 const MAX_HEALTH = 100;
@@ -163,6 +267,7 @@ function npcHasContent(def: NpcDef): boolean {
 function loadStage(id: StageId, pos?: [number, number] | null) {
   stage = new Stage2D(id);
   interactables = buildInteractables2D(id);
+  monsterHp = {};
   // Los guardianes de zona (puente/generador/resonancia) no viven en el mapa
   // abierto: se llega a ellos cruzando desde el punto de desbloqueo.
   npcInstances = NPCS.filter((n) => n.stage === id && !zoneQuestForGuardian(n.id)).map((def) => new Npc2DInstance(def, def.pos[0], def.pos[1]));
@@ -188,6 +293,10 @@ function talkToNpc(npc: Npc2DInstance) {
   }
   if (def.id === "ingeniera_trajes") {
     talkToSpacesuitCrafter(def);
+    return;
+  }
+  if (def.id === "armero_umbral") {
+    talkToArmero(def);
     return;
   }
   if (def.id === "anciano_ultimo") {
@@ -269,6 +378,36 @@ function talkToSpacesuitCrafter(def: NpcDef) {
         ui.toast("No tienes suficientes monedas para el traje espacial.");
       }
     });
+  });
+}
+
+function talkToArmero(def: NpcDef) {
+  ui.openDialogue(def.name, def.dialogue, () => {
+    gs.notifyEvent("hablarCon", def.id, 1);
+    ui.openArmeriaModal(
+      def.name,
+      gs.data.weaponTier,
+      gs.data.balas,
+      () => {
+        const next = nextWeaponTier(gs.data.weaponTier);
+        if (!next) return;
+        if (gs.spend(next.price, "monedas")) {
+          gs.upgradeWeapon(next.tier);
+          ui.toast(`¡${next.name} equipada! Ya puedes cazar más fuerte.`, "raro");
+        } else {
+          ui.toast("No tienes suficientes monedas para esa arma.");
+        }
+      },
+      (amount) => {
+        const cost = amount * AMMO_PRICE_PER_UNIT;
+        if (gs.spend(cost, "monedas")) {
+          gs.addAmmo(amount);
+          ui.toast(`+${amount} balas.`, "raro");
+        } else {
+          ui.toast("No tienes suficientes monedas para esas balas.");
+        }
+      }
+    );
   });
 }
 
@@ -517,6 +656,12 @@ function endMatch() {
   matchEnding = true;
   ui.hideVoidClockButton();
   const r = match.result;
+
+  if (pendingGauntlet !== null) {
+    endGauntletFight(r);
+    return;
+  }
+
   const guardian = pendingGuardian;
   pendingGuardian = null;
   const hideout = pendingHideout;
@@ -559,7 +704,15 @@ function endMatch() {
     mode = hideout ? "hideout" : "world";
     if (r.won && r.mode === "boss") portalFxT = 1.4;
     if (r.won && isSolFinal) {
-      ui.showDimensionRift(() => {});
+      ui.showDimensionRift(() => {
+        gs.unlockStage("el_umbral");
+        ui.setUmbralButtonVisible(true);
+        beginLaunch("Cruzando la Brecha... Bienvenido a El Umbral", () => {
+          loadStage("el_umbral");
+          mode = "world";
+          ui.showWorldMenus();
+        });
+      });
     }
   });
 }
@@ -852,6 +1005,28 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     }
   }
 
+  if (stage.def.id === "el_umbral") {
+    const dPortal = Math.hypot(p.x - GAUNTLET_PORTAL_POS[0], p.y - GAUNTLET_PORTAL_POS[1]);
+    if (dPortal < 60 && (!best || dPortal < best.dist)) {
+      best = { dist: dPortal, label: "Cruzar el portal del Gauntlet", run: () => talkToGauntletPortal() };
+    }
+  }
+
+  for (const m of monstersForStage(stage.def.id)) {
+    if (!gs.isMonsterAlive(m.id, m.respawnMs)) continue;
+    const d = Math.hypot(p.x - m.pos[0], p.y - m.pos[1]);
+    if (d < 55 && (!best || d < best.dist)) {
+      if (gs.data.weaponTier <= 0) {
+        best = { dist: d, label: `${m.name} (necesitas un arma)`, run: () => ui.toast("Necesitas comprar un arma en la Armería del Umbral primero.") };
+      } else if (gs.data.balas <= 0) {
+        best = { dist: d, label: `${m.name} (sin balas)`, run: () => ui.toast("Te has quedado sin balas. Cómpralas en la Armería del Umbral.") };
+      } else {
+        const hp = monsterCurrentHp(m);
+        best = { dist: d, label: `Disparar a ${m.name} (${hp}/${m.maxHp} HP)`, run: () => shootMonster(m) };
+      }
+    }
+  }
+
   if (stage.def.id === "sol") {
     for (const frag of ECLIPSE_FRAGMENTS) {
       if (gs.hasPuzzleItem(frag.id)) continue;
@@ -887,7 +1062,7 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     best = { dist: dTrain, label: "Jugar partido de entrenamiento", run: () => beginMatch("normal") };
   }
 
-  if (stage.def.id !== "hub") {
+  if (stage.def.id !== "hub" && stage.def.id !== "el_umbral") {
     const [gx, gy] = stage.bossGatePos;
     const dGate = Math.hypot(p.x - gx, p.y - gy);
     if (dGate < 70 && (!best || dGate < best.dist)) {
@@ -948,6 +1123,8 @@ function loop(tsMs: number) {
     if (stage.def.id === "celestial") drawRocketParts();
     drawPlanetShipParts();
     drawZoneQuestFeatures();
+    drawMonsters();
+    drawGauntletPortal();
     drawSecretDoor();
     drawHideoutDoor();
     if (stage.def.id === "sol") {
@@ -1340,6 +1517,76 @@ function drawSolPillars() {
     ctx.fillText(pillar.label, sx, sy - 66);
     ctx.shadowBlur = 0;
   }
+}
+
+function drawMonsters() {
+  for (const m of monstersForStage(stage.def.id)) {
+    if (!gs.isMonsterAlive(m.id, m.respawnMs)) continue;
+    if (!camera.isVisible(m.pos[0], m.pos[1], 40)) continue;
+    const [sx, sy] = camera.worldToScreen(m.pos[0], m.pos[1]);
+    const bob = Math.sin(performance.now() / 400 + m.pos[0]) * 4;
+    ctx.save();
+    ctx.translate(sx, sy + bob);
+    const pulse = 0.85 + Math.sin(performance.now() / 220) * 0.1;
+    ctx.scale(pulse, pulse);
+    ctx.fillStyle = m.color;
+    roundRect(ctx, -16, -16, 32, 32, 6);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    roundRect(ctx, -16, -16, 32, 32, 6);
+    ctx.stroke();
+    ctx.restore();
+
+    const hp = monsterCurrentHp(m);
+    ctx.font = "bold 11px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffd9d9";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 3;
+    ctx.fillText(m.name, sx, sy - 32);
+    ctx.shadowBlur = 0;
+
+    const barW = 40;
+    const [bx, by] = [sx - barW / 2, sy + 24];
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(bx, by, barW, 5);
+    ctx.fillStyle = "#ff4d4d";
+    ctx.fillRect(bx, by, barW * (hp / m.maxHp), 5);
+  }
+}
+
+function drawGauntletPortal() {
+  if (stage.def.id !== "el_umbral") return;
+  const [x, y] = GAUNTLET_PORTAL_POS;
+  if (!camera.isVisible(x, y, 100)) return;
+  const [sx, sy] = camera.worldToScreen(x, y);
+  const t = performance.now() / 1000;
+  ctx.save();
+  ctx.translate(sx, sy);
+  for (let i = 0; i < 3; i++) {
+    const r = 30 + i * 14 + Math.sin(t * 1.5 + i) * 4;
+    ctx.globalAlpha = 0.5 - i * 0.12;
+    ctx.strokeStyle = "#ff5a3d";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, t * (1 + i * 0.4), t * (1 + i * 0.4) + Math.PI * 1.5);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = "rgba(255,90,61,0.25)";
+  ctx.beginPath();
+  ctx.arc(0, 0, 26, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.font = "bold 13px 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ff9d8a";
+  ctx.shadowColor = "rgba(0,0,0,0.8)";
+  ctx.shadowBlur = 3;
+  ctx.fillText("GAUNTLET DE JEFES CORRUPTOS", sx, sy - 60);
+  ctx.shadowBlur = 0;
 }
 
 function zoneKindLabel(kind: ZoneUnlockKind): string {
@@ -1824,7 +2071,9 @@ function startGame() {
   };
   ui.onTravelToStage = (id) => loadStage(id);
   ui.onOpenSolarSystem = () => enterSolarMap();
+  ui.onOpenUmbral = () => beginPlanetTravel("el_umbral");
   ui.setSolarSystemButtonVisible(gs.isStageUnlocked(PLANET_ORDER[0]));
+  ui.setUmbralButtonVisible(gs.isStageUnlocked("el_umbral"));
   resize();
   ui.hideLoading();
   requestAnimationFrame(loop);

@@ -16,7 +16,8 @@ export type StageId =
   | "estacion_oxido"
   | "cinturon_asteroides"
   | "agujero_negro"
-  | "sol";
+  | "sol"
+  | "el_umbral";
 
 export type PropType = "arbol" | "cactus" | "roca" | "cristal" | "nieve" | "nube" | "tuberia" | "farola";
 
@@ -35,9 +36,11 @@ export interface StageDef {
   propColor: string;
   bossName: string;
   bossTitle: string;
-  // Los planetas viven en el "Sistema Solar" (se viaja a ellos con el cohete,
-  // no por el Mapa de Etapas normal) en vez del mundo con base en tierra.
-  realm?: "solar";
+  // Los planetas (y el resto del sistema solar) viven en el "Sistema Solar"
+  // (se viaja a ellos con el cohete, no por el Mapa de Etapas normal). El
+  // Umbral es la primera parada de la dimensión siguiente, más allá de la
+  // Brecha: no aparece en el Sistema Solar en absoluto.
+  realm?: "solar" | "umbral";
   // Los mundos de "espacio profundo" (más allá de los 3 planetas) requieren
   // traje espacial: la muerte es posible y las llaves se consiguen con
   // desafíos de parkour en vez de partidos.
@@ -328,6 +331,25 @@ export const STAGES: Record<StageId, StageDef> = {
     deepSpace: true,
     riddleGate: true,
   },
+
+  // ---------------- El Umbral (la dimensión más allá de la Brecha) ----------------
+  el_umbral: {
+    id: "el_umbral",
+    name: "El Umbral",
+    description: "Una estación de parada entre realidades, hecha con lo que trajeron quienes cruzaron antes que tú.",
+    order: 16,
+    width: W,
+    height: H,
+    groundColor: "#241f30",
+    groundColorAlt: "#2c2638",
+    accentColor: "#ffcf6b",
+    skyColor: "#120f1c",
+    propType: "farola",
+    propColor: "#5a4a2a",
+    bossName: "",
+    bossTitle: "",
+    realm: "umbral",
+  },
 };
 
 export const STAGE_ORDER: StageId[] = [
@@ -349,6 +371,11 @@ export const PLANET_ORDER: StageId[] = ["planeta_escarlata", "planeta_anillos", 
 // reconstruida a mano), aquí basta con derrotar al jefe para abrir el
 // siguiente, igual que en las 8 etapas originales.
 export const STATION_ORDER: StageId[] = ["estacion_oxido", "cinturon_asteroides", "agujero_negro", "sol"];
+
+// La dimensión más allá de la Brecha del Sol. Por ahora solo tiene una
+// parada (El Umbral); no se llega a ella por el Sistema Solar sino
+// cruzando la Brecha al ganar la batalla final.
+export const UMBRAL_ORDER: StageId[] = ["el_umbral"];
 
 export function nextStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);

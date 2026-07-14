@@ -45,6 +45,9 @@ const LANDMARKS: Landmark[] = [
 
   { stage: "agujero_negro", pos: [-340, 240], type: "choza" },
   { stage: "agujero_negro", pos: [880, -720], type: "choza" },
+
+  { stage: "el_umbral", pos: [0, 0], type: "fogata" },
+  { stage: "el_umbral", pos: [-260, 240], type: "choza" },
 ];
 
 function buildProps(stage: StageDef): Prop[] {
@@ -413,7 +416,7 @@ export class Stage2D {
   }
 
   drawBossGate(ctx: CanvasRenderingContext2D, camera: Camera2D, unlocked: boolean, defeated: boolean) {
-    if (this.def.id === "hub") return;
+    if (this.def.id === "hub" || this.def.id === "el_umbral") return;
     const [x, y] = this.bossGatePos;
     if (!camera.isVisible(x, y, 120)) return;
     const [sx, sy] = camera.worldToScreen(x, y);

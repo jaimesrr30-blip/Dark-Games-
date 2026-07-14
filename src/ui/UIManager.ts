@@ -6,12 +6,13 @@ import { RARITIES, type Rarity } from "../data/rarity";
 import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
 import { shopCatalog } from "../data/shops";
 import { MISSIONS, type MissionType } from "../data/missions";
-import { STAGES, STAGE_ORDER, PLANET_ORDER, STATION_ORDER, type StageId } from "../data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, STATION_ORDER, UMBRAL_ORDER, type StageId } from "../data/stages";
 import { NPCS, guardiansForStage, type NpcDef } from "../data/npcs";
 import { CHESTS, PET_SPAWNS, ROCKET_PARTS, ROCKET_ENGINE_ID, PYRAMID_BUTTONS, planetShipParts } from "../data/spawns";
 import { ZONE_QUESTS } from "../data/zoneQuests";
 import { ECLIPSE_FRAGMENTS, SOL_RIDDLE_SOLVED_ID, eclipseFragmentIds } from "../data/solRiddle";
 import { SPECIAL_ITEMS } from "../data/specialItems";
+import { weaponForTier, nextWeaponTier, AMMO_PRICE_PER_UNIT, AMMO_BATCH_SIZES } from "../data/weapons";
 import { PET_ARCHETYPES, petSellPrice } from "../data/pets";
 import { visualFromState } from "../entities/carVisual";
 import type { Stage2D } from "../stage/Stage2D";
@@ -44,6 +45,7 @@ export class UIManager {
   private minimapCtx: CanvasRenderingContext2D;
   onEquipChange: (() => void) | null = null;
   onOpenSolarSystem: (() => void) | null = null;
+  onOpenUmbral: (() => void) | null = null;
 
   constructor(root: HTMLElement, gs: GameState) {
     this.root = root;
@@ -64,6 +66,7 @@ export class UIManager {
     qs("#btn-open-garage").addEventListener("click", () => this.openGarageModal());
     qs("#btn-open-map").addEventListener("click", () => this.openMapModal());
     qs("#btn-open-solar").addEventListener("click", () => this.onOpenSolarSystem?.());
+    qs("#btn-open-umbral").addEventListener("click", () => this.onOpenUmbral?.());
 
     document.querySelectorAll<HTMLElement>("[data-mtab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -77,7 +80,7 @@ export class UIManager {
     const stageFilter = qs<HTMLSelectElement>("#mission-stage-filter");
     stageFilter.innerHTML =
       `<option value="all">Todas las etapas</option>` +
-      [...STAGE_ORDER, ...PLANET_ORDER].map((id) => `<option value="${id}">${STAGES[id].name}</option>`).join("");
+      [...STAGE_ORDER, ...PLANET_ORDER, ...STATION_ORDER, ...UMBRAL_ORDER].map((id) => `<option value="${id}">${STAGES[id].name}</option>`).join("");
     stageFilter.addEventListener("change", () => {
       this.currentMissionStage = stageFilter.value as StageId | "all";
       this.renderMissionList();
@@ -219,6 +222,8 @@ export class UIManager {
     this.lastDiamonds = diamonds;
     qs("#hud-fuel-pill").classList.toggle("hidden", d.stellarFuel <= 0 && !this.gs.isStageUnlocked(PLANET_ORDER[0]));
     qs("#hud-fuel").textContent = String(d.stellarFuel);
+    qs("#hud-ammo-pill").classList.toggle("hidden", !this.gs.isStageUnlocked("el_umbral"));
+    qs("#hud-ammo").textContent = String(d.balas);
     qs("#hud-level").textContent = `Nivel ${d.level}`;
     const need = xpForLevel(d.level);
     qs("#hud-xp-label").textContent = `${Math.floor(d.xp)} / ${need} XP`;
@@ -842,6 +847,49 @@ export class UIManager {
     };
   }
 
+  // ---------- Armería del Umbral (armas + munición) ----------
+  openArmeriaModal(npcName: string, weaponTier: number, ammo: number, onBuyWeapon: () => void, onBuyAmmo: (amount: number) => void) {
+    qs("#modal-ammo").classList.add("show");
+    const current = weaponForTier(weaponTier);
+    const next = nextWeaponTier(weaponTier);
+    qs("#ammo-text").textContent =
+      `${npcName}: "Llevas ${current ? current.name : "las manos vacías"} y ${ammo} bala(s). ` +
+      (next ? `Te puedo vender ${next.name} por ${next.price} monedas.` : "Ya tienes la mejor arma que queda en pie aquí.") +
+      ` Las balas van a ${AMMO_PRICE_PER_UNIT} monedas cada una."`;
+
+    const weaponBtn = qs<HTMLButtonElement>("#btn-weapon-buy");
+    if (next) {
+      weaponBtn.classList.remove("hidden");
+      const canAfford = this.gs.canAfford(next.price, "monedas");
+      weaponBtn.disabled = !canAfford;
+      weaponBtn.textContent = canAfford ? `Comprar ${next.name} por ${next.price} monedas` : `${next.name} (te faltan monedas, cuesta ${next.price})`;
+      weaponBtn.onclick = () => {
+        qs("#modal-ammo").classList.remove("show");
+        onBuyWeapon();
+      };
+    } else {
+      weaponBtn.classList.add("hidden");
+      weaponBtn.onclick = null;
+    }
+
+    const buyBtns = [qs<HTMLButtonElement>("#btn-ammo-buy-1"), qs<HTMLButtonElement>("#btn-ammo-buy-2")];
+    AMMO_BATCH_SIZES.forEach((amount, i) => {
+      const cost = amount * AMMO_PRICE_PER_UNIT;
+      const canAfford = this.gs.canAfford(cost, "monedas");
+      const btn = buyBtns[i];
+      btn.disabled = !canAfford;
+      btn.textContent = `Comprar ${amount} balas por ${cost} monedas`;
+      btn.onclick = () => {
+        qs("#modal-ammo").classList.remove("show");
+        onBuyAmmo(amount);
+      };
+    });
+
+    qs<HTMLButtonElement>("#btn-ammo-leave").onclick = () => {
+      qs("#modal-ammo").classList.remove("show");
+    };
+  }
+
   // ---------- Traje espacial ----------
   openSuitModal(npcName: string, cost: number, onCraft: () => void) {
     qs("#modal-suit").classList.add("show");
@@ -939,6 +987,10 @@ export class UIManager {
 
   setSolarSystemButtonVisible(visible: boolean) {
     qs("#btn-open-solar").classList.toggle("hidden", !visible);
+  }
+
+  setUmbralButtonVisible(visible: boolean) {
+    qs("#btn-open-umbral").classList.toggle("hidden", !visible);
   }
 
   // ---------- Partido ----------

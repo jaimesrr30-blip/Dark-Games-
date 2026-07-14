@@ -27,6 +27,7 @@ export const UI_TEMPLATE = `
     <div class="currency-pill panel"><span class="icon icon-coin"></span><span id="hud-coins">0</span></div>
     <div class="currency-pill panel"><span class="icon icon-diamond"></span><span id="hud-diamonds">0</span></div>
     <div class="currency-pill panel hidden" id="hud-fuel-pill"><span class="icon icon-fuel"></span><span id="hud-fuel">0</span></div>
+    <div class="currency-pill panel hidden" id="hud-ammo-pill"><span class="icon icon-ammo"></span><span id="hud-ammo">0</span></div>
   </div>
   <div id="level-panel" class="panel">
     <div id="level-row"><span id="hud-level">Nivel 1</span><span id="hud-xp-label">0 / 100 XP</span></div>
@@ -42,6 +43,7 @@ export const UI_TEMPLATE = `
     <button class="btn-arrow small interactive" id="btn-open-inventory">Inventario</button>
     <button class="btn-arrow small interactive" id="btn-open-garage">Garaje</button>
     <button class="btn-arrow small gold interactive hidden" id="btn-open-solar">🚀 Sistema Solar</button>
+    <button class="btn-arrow small gold interactive hidden" id="btn-open-umbral">🌀 El Umbral</button>
   </div>
 </div>
 
@@ -128,6 +130,25 @@ export const UI_TEMPLATE = `
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="btn-arrow gold interactive" id="btn-fuel-buy"><span id="fuel-buy-label">Comprar</span> <span class="arrow-icon">➤</span></button>
         <button class="btn-arrow interactive" id="btn-fuel-leave">Ahora no <span class="arrow-icon">➤</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Munición del Umbral -->
+<div class="modal-backdrop interactive" id="modal-ammo">
+  <div class="modal-window panel" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Armería del Umbral</div>
+      <button class="modal-close interactive" data-close="modal-ammo">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="ammo-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:18px;"></p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-arrow gold interactive hidden" id="btn-weapon-buy"></button>
+        <button class="btn-arrow gold interactive" id="btn-ammo-buy-1"></button>
+        <button class="btn-arrow gold interactive" id="btn-ammo-buy-2"></button>
+        <button class="btn-arrow interactive" id="btn-ammo-leave">Ahora no</button>
       </div>
     </div>
   </div>

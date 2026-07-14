@@ -1197,6 +1197,57 @@ export const NPCS: NpcDef[] = [
     ],
     missionIds: ["s_partido_sol"],
   },
+
+  // ---------------- El Umbral (la dimensión más allá de la Brecha) ----------------
+  {
+    id: "armero_umbral",
+    name: "Armero del Umbral",
+    stage: "el_umbral",
+    pos: [-260, 200],
+    color: "#c98a3a",
+    role: "historia",
+    dialogue: [
+      "Bienvenido al Umbral, piloto. Aquí paramos todos los que cruzamos una Brecha y no sabíamos a dónde íbamos.",
+      "Aquí fuera hay cosas que no se negocian con un partido de fútbol. Necesitarás un arma y balas si quieres cazarlas.",
+    ],
+    missionIds: ["m_llegada_umbral"],
+  },
+  {
+    id: "cazarrecompensas_umbral",
+    name: "Cazarrecompensas del Umbral",
+    stage: "el_umbral",
+    pos: [280, 240],
+    color: "#8a3fae",
+    role: "mascotas",
+    dialogue: ["Hasta aquí llegan criaturas de todos los mundos que has cruzado. Pago bien por las que sobreviven al viaje."],
+  },
+  {
+    id: "ultimo_cruce",
+    name: "Última en Cruzar",
+    stage: "el_umbral",
+    pos: [0, -340],
+    color: "#e8f4ff",
+    role: "historia",
+    dialogue: [
+      "Yo crucé la Brecha hace mucho, mucho tiempo. Ya ni recuerdo qué Sol dejé atrás.",
+      "El Umbral no es un final, piloto. Es solo la primera parada de algo mucho más grande. Ni siquiera nosotros sabemos cuántas paradas hay.",
+      "Cada vez llega menos gente. Y los que llegamos, cada vez recordamos menos de dónde veníamos. Ten cuidado con eso.",
+    ],
+    missionIds: ["s_monstruos_umbral"],
+  },
+  {
+    id: "centinela_gauntlet",
+    name: "Centinela del Gauntlet",
+    stage: "el_umbral",
+    pos: [0, -700],
+    color: "#ff5a3d",
+    role: "mision",
+    dialogue: [
+      "Ese portal de ahí detrás no lleva a ningún sitio nuevo. Lleva hacia atrás: ecos corruptos de todo lo que ya venciste, cada vez más fuertes y más rápidos.",
+      "Nadie lo ha completado entero todavía. Si te atreves, no podrás parar a mitad de camino: es todo o nada.",
+    ],
+    missionIds: ["m_gauntlet_umbral"],
+  },
 ];
 
 export function guardiansForStage(stage: StageId): NpcDef[] {

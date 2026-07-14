@@ -41,6 +41,9 @@ export interface SaveData {
   planetShipsBuilt: Record<string, boolean>;
   stellarFuel: number;
   hasSpacesuit: boolean;
+  balas: number;
+  weaponTier: number;
+  monsterKills: Record<string, number>;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -86,6 +89,9 @@ function defaultSave(): SaveData {
     planetShipsBuilt: {},
     stellarFuel: 0,
     hasSpacesuit: false,
+    balas: 0,
+    weaponTier: 0,
+    monsterKills: {},
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -403,6 +409,43 @@ export class GameState {
     this.save();
     this.emit();
     return true;
+  }
+
+  // ---------- Arsenal (armería de El Umbral) ----------
+  upgradeWeapon(tier: number) {
+    if (tier <= this.data.weaponTier) return false;
+    this.data.weaponTier = tier;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  // ---------- Balas (munición para la armería de El Umbral) ----------
+  addAmmo(amount: number) {
+    this.data.balas += amount;
+    this.save();
+    this.emit();
+  }
+
+  spendAmmo(amount: number): boolean {
+    if (this.data.balas < amount) return false;
+    this.data.balas -= amount;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  // ---------- Monstruos (El Umbral) ----------
+  isMonsterAlive(id: string, respawnMs: number): boolean {
+    const lastKill = this.data.monsterKills[id];
+    if (!lastKill) return true;
+    return Date.now() - lastKill >= respawnMs;
+  }
+
+  killMonster(id: string) {
+    this.data.monsterKills[id] = Date.now();
+    this.save();
+    this.emit();
   }
 
   // ---------- Vender mascotas ----------

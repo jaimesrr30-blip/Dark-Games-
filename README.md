@@ -222,6 +222,31 @@ npm run preview
   desaparece de la lista en cuanto se entrega o se consume.
 - **Más mascotas**: 12 arquetipos de mascota (el doble que antes), dos por
   cada poder, para que la colección se sienta menos repetida.
+- **El Umbral: la nueva dimensión al cruzar la Brecha**. Al ganar la batalla
+  final del Sol, la escena de la Brecha Dimensional ya no es un final cerrado:
+  desbloquea "El Umbral", una estación de parada construida por supervivientes
+  que cruzaron otras Brechas antes que el jugador. Se llega con un botón fijo
+  en el HUD ("🌀 El Umbral"), no por el Sistema Solar, y no tiene riesgo de
+  muerte (no cuenta como espacio profundo).
+  - **Armería**: el Armero del Umbral vende 3 niveles de arma (Pistola,
+    Escopeta y Rifle del Umbral, cada vez más caros y más dañinos) y balas por
+    lotes de 20 o 100, todo pagado con monedas normales.
+  - **Monstruos sueltos**: 3 criaturas fijas (Rastro Corrupto, Errante del
+    Vacío, Devorador de Ecos) aparecen repartidas por El Umbral con su propia
+    vida y recompensa en monedas/XP; hace falta un arma equipada y balas para
+    cazarlas (E dispara una bala), y cada una reaparece un rato después de
+    morir. De momento los monstruos solo existen en El Umbral, no en los
+    mundos ya construidos.
+  - **El Gauntlet de Jefes Corruptos**: un portal cerca del Centinela del
+    Gauntlet encadena 5 combates seguidos contra ecos corruptos de jefes ya
+    derrotados (Neo-Piloto X9, Ignarok, El Campeón Eterno, Prisma Eterna y
+    Heliarca), cada vez más difíciles. Es todo o nada: perder o abandonar a
+    mitad de camino no deja ningún progreso parcial, solo completar los 5
+    seguidos cuenta como victoria y da la recompensa completa.
+  - Sigue el mismo hilo narrativo transversal: NPCs propios de El Umbral
+    continúan la historia general ("cada vez llega menos gente...") y dejan
+    claro que esto tampoco es el final: "ni siquiera esta historia sabe
+    cuántas paradas hay todavía".
 
 ## Limitaciones conocidas / lo que NO incluye
 
@@ -234,9 +259,10 @@ npm run preview
   El Sol, en ese orden de desbloqueo); añadir más sigue el mismo patrón de
   datos.
 - El Reloj del Vacío está listo para que futuras dimensiones reaccionen a él
-  (`gs.hasPuzzleItem("reloj_del_vacio")`), pero esa "próxima dimensión" en sí
-  todavía no existe: el juego termina la partida actual en la escena de la
-  Brecha Dimensional.
+  (`gs.hasPuzzleItem("reloj_del_vacio")`).
+- El Umbral es, de momento, la única parada de "la dimensión más allá de la
+  Brecha del Sol" (`UMBRAL_ORDER`); añadir más paradas sigue el mismo patrón
+  de datos que el resto de mundos.
 - La mecánica "resonancia" de la Luna de Cristal usa un único cristal por
   guardián (no una secuencia de orden en un altar compartido); mantiene la
   exploración y el desbloqueo del domo, pero simplifica el puzzle de orden.

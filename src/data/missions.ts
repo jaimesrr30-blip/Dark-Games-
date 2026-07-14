@@ -1001,6 +1001,48 @@ export const MISSIONS: MissionDef[] = [
     rewardXp: 6000,
     requires: ["m_sol_acertijo"],
   },
+
+  // ---------- El Umbral (la dimensión más allá de la Brecha) ----------
+  {
+    id: "m_llegada_umbral",
+    type: "principal",
+    stage: "el_umbral",
+    title: "La Primera Parada",
+    giver: "armero_umbral",
+    description: "Habla con el Armero del Umbral, tu primer contacto al otro lado de la Brecha.",
+    objectives: [{ type: "hablarCon", target: "armero_umbral", count: 1, description: "Habla con el Armero del Umbral" }],
+    rewardMonedas: 2000,
+    rewardDiamantes: 60,
+    rewardXp: 800,
+  },
+  {
+    id: "s_monstruos_umbral",
+    type: "secundaria",
+    stage: "el_umbral",
+    title: "Caza en el Umbral",
+    giver: "ultimo_cruce",
+    description: "Derrota a los 3 tipos de monstruos que rondan El Umbral. Necesitarás un arma y balas.",
+    objectives: [
+      { type: "derrotarEnemigo", target: "monstruo_umbral_1", count: 1, description: "Derrota al Rastro Corrupto" },
+      { type: "derrotarEnemigo", target: "monstruo_umbral_2", count: 1, description: "Derrota al Errante del Vacío" },
+      { type: "derrotarEnemigo", target: "monstruo_umbral_3", count: 1, description: "Derrota al Devorador de Ecos" },
+    ],
+    rewardMonedas: 4000,
+    rewardDiamantes: 120,
+    rewardXp: 1200,
+  },
+  {
+    id: "m_gauntlet_umbral",
+    type: "principal",
+    stage: "el_umbral",
+    title: "El Gauntlet de Jefes Corruptos",
+    giver: "centinela_gauntlet",
+    description: "Cruza el portal y vence a los 5 ecos corruptos seguidos, sin poder parar a mitad de camino.",
+    objectives: [{ type: "derrotarJefe", target: "el_umbral", count: 1, description: "Completa el Gauntlet de Jefes Corruptos" }],
+    rewardMonedas: 30000,
+    rewardDiamantes: 800,
+    rewardXp: 10000,
+  },
 ];
 
 // Una misión por cada guardián: conseguir su llave (pagando, ganando un partido,

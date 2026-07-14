@@ -151,6 +151,12 @@ export const ITEMS: ItemDef[] = [
   { id: "estela_vacio", slot: "estela", name: "Estela del Vacío", rarity: "divino", price: 270, currency: "diamantes", colorHex: "#1a0e08", description: "Absorbe el aire a tu paso, como el espacio exterior." },
   { id: "turbo_oxidado", slot: "turbo", name: "Turbo Oxidado", rarity: "dios", price: 155, currency: "diamantes", colorHex: "#c9701f", description: "Suena a chatarra, pero empuja como un cohete." },
   { id: "bocina_alarma_estacion", slot: "bocina", name: "Alarma de Estación", rarity: "raro", price: 800, currency: "monedas", description: "La misma alarma que sonó el día en que la estación murió." },
+
+  // Objetos exclusivos del Sol
+  { id: "color_ceniza_solar", slot: "color", name: "Ceniza Solar", rarity: "divino", price: 300, currency: "diamantes", colorHex: "#3a1000", colorHex2: "#ffcf3d", description: "Lo último que queda cuando el calor se lo lleva todo." },
+  { id: "rueda_eclipse", slot: "rueda", name: "Borde del Eclipse", rarity: "prohibido", price: 550, currency: "diamantes", colorHex: "#1a0a00", colorHex2: "#ffcf3d", description: "Un anillo de luz alrededor de la oscuridad total." },
+  { id: "gol_brecha_dimensional", slot: "explosionGol", name: "Brecha Dimensional", rarity: "prohibido", price: 600, currency: "diamantes", colorHex: "#ffcf3d", colorHex2: "#2b0033", description: "El campo entero se rasga por un instante al marcar." },
+  { id: "estela_solar", slot: "estela", name: "Estela Solar", rarity: "dios", price: 180, currency: "diamantes", colorHex: "#ff8a3d", description: "Deja tras de sí un rastro que arde durante segundos." },
 ];
 
 export function itemsBySlot(slot: ItemSlot): ItemDef[] {

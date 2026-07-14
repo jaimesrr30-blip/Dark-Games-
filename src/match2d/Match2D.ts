@@ -14,11 +14,17 @@ import { hashString } from "../utils/random";
 
 const POWER_LABELS: Record<string, string> = {
   chispa: "Recarga de Turbo",
+  relampago: "Recarga de Turbo",
   golpetazo: "Golpe Fuerte",
+  titan: "Golpe Fuerte",
   espiral: "Efecto Curva",
+  remolino: "Efecto Curva",
   saltarin: "Impulso de Velocidad",
+  brincador: "Impulso de Velocidad",
   guardian: "Escudo de Gol",
+  coraza: "Escudo de Gol",
   magneto: "Imán de Balón",
+  graviton: "Imán de Balón",
 };
 
 interface PetFx {
@@ -69,6 +75,22 @@ interface Coin {
   value: number;
 }
 
+interface Flare {
+  x: number;
+  y: number;
+  t: number;
+  phase: "warn" | "burn";
+  radius: number;
+  damage: number;
+}
+
+interface RadiationBolt {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
 export class Match2D {
   width: number;
   height: number;
@@ -105,6 +127,18 @@ export class Match2D {
   private static readonly ATTACK_CHARGE_TIME = 1.1;
   private static readonly ATTACK_STRIKE_RADIUS = 260;
 
+  // ---------- Batalla final del Sol (5 minutos, 3 fases) ----------
+  private duration: number;
+  private flares: Flare[] = [];
+  private flareTimer = 3;
+  private bolts: RadiationBolt[] = [];
+  private boltTimer = 4;
+  private radiationHits = 0;
+  bossInvulnerable = false;
+  private slowMoT = 0;
+  voidClockUsed = false;
+  private static readonly SLOWMO_FACTOR = 0.3;
+
   skill: number;
 
   constructor(
@@ -116,7 +150,9 @@ export class Match2D {
     opponentColor?: string,
     fieldStage?: StageId,
     public lethal = false,
-    private onPlayerDamage?: (amount: number) => void
+    private onPlayerDamage?: (amount: number) => void,
+    public sunFinal = false,
+    public hasVoidClock = false
   ) {
     if (mode === "boss" && stage) {
       this.width = 2000;
@@ -129,12 +165,14 @@ export class Match2D {
     }
     this.goalGapY = [-140, 140];
     this.skill = skill ?? (mode === "boss" ? 0.85 : 0.5);
+    this.duration = sunFinal ? 300 : MATCH_DURATION;
+    this.timeLeft = this.duration;
 
     const theme = STAGES[fieldStage ?? stage ?? "hub"];
     this.tileColorA = darken(theme.groundColor, 0.82);
     this.tileColorB = darken(theme.groundColorAlt, 0.8);
 
-    if (mode === "boss" && stage) {
+    if (mode === "boss" && stage && !sunFinal) {
       this.walls = generateMaze(hashString(stage), this.width / 2, this.height / 2);
       this.coins = this.generateCoins(stage);
     }
@@ -187,24 +225,29 @@ export class Match2D {
     this.player.boostRegenMult = 1;
     const fx: PetFx = { hitMult: 1, curve: 0, magnet: 0, shield: 0, speedMult: 0 };
     if (!pet) return fx;
+    const arche = PET_ARCHETYPES.find((a) => a.id === pet.archetypeId);
+    if (!arche) return fx;
     const power = petPowerValue(pet);
-    switch (pet.archetypeId) {
-      case "chispa":
+    // Se distingue por el tipo de poder (no por el id del arquetipo) para que
+    // cualquier mascota nueva con un poder ya existente funcione sin tener
+    // que tocar este switch cada vez.
+    switch (arche.power) {
+      case "turboRecarga":
         this.player.boostRegenMult = 1 + power * 3;
         break;
-      case "golpetazo":
+      case "golpeFuerte":
         fx.hitMult = 1 + power;
         break;
-      case "espiral":
+      case "efectoCurva":
         fx.curve = power;
         break;
-      case "guardian":
+      case "escudoGol":
         fx.shield = power;
         break;
-      case "magneto":
+      case "iman":
         fx.magnet = power;
         break;
-      case "saltarin":
+      case "saltoAlto":
         // Sin eje vertical en este juego 2D: el "salto" se traduce en un
         // impulso extra de velocidad punta y aceleración.
         fx.speedMult = power;
@@ -222,8 +265,14 @@ export class Match2D {
       this.goalPause -= dt;
       return;
     }
-    this.timeLeft -= dt;
+
+    // El Reloj del Vacío ralentiza todo el campo (menos al jugador) 10s.
+    if (this.slowMoT > 0) this.slowMoT = Math.max(0, this.slowMoT - dt);
+    const hazardDt = this.sunFinal && this.slowMoT > 0 ? dt * Match2D.SLOWMO_FACTOR : dt;
+
+    this.timeLeft -= hazardDt;
     if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
       this.endMatch();
       return;
     }
@@ -234,13 +283,13 @@ export class Match2D {
     this.player.update(dt, { x: this.input.moveX, y: this.input.moveY, boost: this.input.boost }, bounds, 1 + fx.speedMult);
     const aiInput = this.computeAiInput();
     const speedMult = 0.72 + this.skill * 0.55;
-    this.opponent.update(dt, aiInput, bounds, speedMult);
+    this.opponent.update(hazardDt, aiInput, bounds, speedMult);
 
     this.resolveCarWalls(this.player);
     this.resolveCarWalls(this.opponent);
     this.resolveCarCar();
 
-    this.ball.update(dt, bounds, this.walls, this.goalGapY);
+    this.ball.update(hazardDt, bounds, this.walls, this.goalGapY);
     this.resolveBallCar(this.player, true, fx);
     this.resolveBallCar(this.opponent, false, fx);
 
@@ -256,9 +305,83 @@ export class Match2D {
     }
 
     if (this.attackStrikeFxT > 0) this.attackStrikeFxT = Math.max(0, this.attackStrikeFxT - dt);
-    if (this.lethal && this.mode === "boss") this.updateLethalAttack(dt);
+    if (this.lethal && this.mode === "boss" && !this.sunFinal) this.updateLethalAttack(dt);
+    if (this.sunFinal) this.updateSunFinal(hazardDt);
 
     this.checkGoal(bounds);
+  }
+
+  // Activa el Reloj del Vacío: 10s de tiempo ralentizado para todo salvo el
+  // jugador. Un solo uso por batalla.
+  activateVoidClock(): boolean {
+    if (!this.sunFinal || !this.hasVoidClock || this.voidClockUsed || this.finished) return false;
+    this.voidClockUsed = true;
+    this.slowMoT = 10;
+    return true;
+  }
+
+  private spawnFlare(big: boolean) {
+    const hw = this.width / 2 - 120;
+    const hh = this.height / 2 - 100;
+    const x = (Math.random() * 2 - 1) * hw;
+    const y = (Math.random() * 2 - 1) * hh;
+    this.flares.push({ x, y, t: 0, phase: "warn", radius: big ? 130 : 85, damage: big ? 26 : 14 });
+  }
+
+  // Fase 1 (0-2min): llamaradas aleatorias en el campo. Fase 2 (2-4min): el
+  // calor sube el doble de rápido y además dispara ráfagas de energía
+  // directas contra el jugador (3 impactos = muerte). Fase 3 (último
+  // minuto): el jefe es invulnerable y el campo entero se llena de
+  // meteoritos; sobrevivir hasta que acabe el reloj es la única salida.
+  private updateSunFinal(hazardDt: number) {
+    const elapsed = this.duration - this.timeLeft;
+    const phase = elapsed < 120 ? 1 : elapsed < 240 ? 2 : 3;
+    this.bossInvulnerable = phase === 3;
+
+    this.flareTimer -= hazardDt;
+    const flareInterval = phase === 1 ? 3.2 : phase === 2 ? 1.6 : 0.9;
+    if (this.flareTimer <= 0) {
+      this.spawnFlare(phase === 3);
+      this.flareTimer = flareInterval + Math.random() * 0.8;
+    }
+    for (const f of this.flares) {
+      f.t += hazardDt;
+      if (f.phase === "warn" && f.t >= 0.8) {
+        f.phase = "burn";
+        f.t = 0;
+      } else if (f.phase === "burn") {
+        const d = Math.hypot(this.player.x - f.x, this.player.y - f.y);
+        if (d < f.radius) this.onPlayerDamage?.(f.damage * hazardDt);
+      }
+    }
+    this.flares = this.flares.filter((f) => !(f.phase === "burn" && f.t >= 1.5));
+
+    if (phase >= 2) {
+      this.boltTimer -= hazardDt;
+      if (this.boltTimer <= 0) {
+        const dx = this.player.x - this.opponent.x;
+        const dy = this.player.y - this.opponent.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const speed = 420;
+        this.bolts.push({ x: this.opponent.x, y: this.opponent.y, vx: (dx / len) * speed, vy: (dy / len) * speed });
+        this.boltTimer = phase === 3 ? 2.2 : 3.4;
+      }
+      for (const b of this.bolts) {
+        b.x += b.vx * hazardDt;
+        b.y += b.vy * hazardDt;
+      }
+      this.bolts = this.bolts.filter((b) => {
+        const d = Math.hypot(this.player.x - b.x, this.player.y - b.y);
+        if (d < this.player.size / 2 + 14) {
+          this.radiationHits++;
+          this.onPlayerDamage?.(15);
+          this.pushPopup(this.player.x, this.player.y - 30, `¡RADIACIÓN! (${this.radiationHits}/3)`, "#8fffb0");
+          if (this.radiationHits >= 3) this.onPlayerDamage?.(9999);
+          return false;
+        }
+        return Math.abs(b.x) < this.width && Math.abs(b.y) < this.height;
+      });
+    }
   }
 
   private computeAiInput() {
@@ -410,6 +533,12 @@ export class Match2D {
   }
 
   private onGoal(scorer: "player" | "opponent") {
+    if (scorer === "player" && this.bossInvulnerable) {
+      // Último minuto: Heliarca es invulnerable, los goles no cuentan.
+      this.pushPopup(0, 0, "¡INVULNERABLE!", "#ff3b3b");
+      this.ball.reset(0, 0);
+      return;
+    }
     if (scorer === "player") {
       this.scoreA++;
       this.gs.recordGoal();
@@ -427,12 +556,16 @@ export class Match2D {
 
   private endMatch() {
     this.finished = true;
-    const won = this.scoreA > this.scoreB;
+    // En la batalla final del Sol, sobrevivir los 5 minutos completos ya es
+    // una victoria aunque no se llegue a los 5 goles (el último minuto ni
+    // siquiera permite marcar: Heliarca es invulnerable).
+    let won = this.scoreA > this.scoreB;
+    if (this.sunFinal && this.timeLeft <= 0) won = true;
     this.result = { won, scoreA: this.scoreA, scoreB: this.scoreB, mode: this.mode, stage: this.stage };
     if (won) {
-      const coins = this.mode === "boss" ? 900 : 200;
-      const diamonds = this.mode === "boss" ? 30 : 4;
-      const xp = this.mode === "boss" ? 450 : 120;
+      const coins = this.sunFinal ? 15000 : this.mode === "boss" ? 900 : 200;
+      const diamonds = this.sunFinal ? 500 : this.mode === "boss" ? 30 : 4;
+      const xp = this.sunFinal ? 6000 : this.mode === "boss" ? 450 : 120;
       this.gs.addCurrency(coins, diamonds);
       this.gs.addXp(xp);
       if (this.mode === "boss" && this.stage) {
@@ -533,7 +666,80 @@ export class Match2D {
     if (this.fx.magnet > 0) this.drawMagnetAura(ctx, camera);
     if (this.goalFxT > 0) this.drawGoalExplosion(ctx, camera);
     if (this.lethal && (this.attackCharging || this.attackStrikeFxT > 0)) this.drawLethalAttackFx(ctx, camera);
+    if (this.sunFinal) this.drawSunFinalFx(ctx, camera);
     this.drawFxPopups(ctx, camera);
+  }
+
+  private drawSunFinalFx(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    for (const f of this.flares) {
+      const [sx, sy] = camera.worldToScreen(f.x, f.y);
+      ctx.save();
+      if (f.phase === "warn") {
+        const p = Math.min(1, f.t / 0.8);
+        ctx.globalAlpha = 0.25 + p * 0.35;
+        ctx.strokeStyle = "#ffcf3d";
+        ctx.lineWidth = 4;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.arc(sx, sy, f.radius * p, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        const p = Math.min(1, f.t / 1.5);
+        ctx.globalAlpha = Math.max(0, 1 - p) * 0.75;
+        const grad = ctx.createRadialGradient(sx, sy, 4, sx, sy, f.radius);
+        grad.addColorStop(0, "rgba(255,240,180,0.9)");
+        grad.addColorStop(0.6, "rgba(255,90,20,0.6)");
+        grad.addColorStop(1, "rgba(255,40,0,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, f.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    for (const b of this.bolts) {
+      const [sx, sy] = camera.worldToScreen(b.x, b.y);
+      ctx.save();
+      ctx.fillStyle = "#8fffb0";
+      ctx.shadowColor = "#8fffb0";
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (this.bossInvulnerable) {
+      const [ox, oy] = camera.worldToScreen(this.opponent.x, this.opponent.y);
+      const pulse = 1 + Math.sin(performance.now() / 180) * 0.1;
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "#ff3b3b";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(ox, oy, 46 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (this.slowMoT > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = "#8fd3ff";
+      ctx.fillRect(0, 0, camera.viewW, camera.viewH);
+      ctx.restore();
+      ctx.save();
+      ctx.font = "900 20px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#8fd3ff";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 6;
+      ctx.fillText(`RELOJ DEL VACÍO · ${this.slowMoT.toFixed(1)}s`, camera.viewW / 2, 70);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
   }
 
   private drawLethalAttackFx(ctx: CanvasRenderingContext2D, camera: Camera2D) {

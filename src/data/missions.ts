@@ -15,7 +15,8 @@ export type MissionObjectiveType =
   | "venderMascota"
   | "descubrirSecreto"
   | "recogerPiezas"
-  | "derrotarEnemigo";
+  | "derrotarEnemigo"
+  | "resolverAcertijo";
 
 export interface MissionObjective {
   type: MissionObjectiveType;
@@ -822,6 +823,83 @@ export const MISSIONS: MissionDef[] = [
     rewardMonedas: 9000,
     rewardDiamantes: 280,
     rewardXp: 3800,
+  },
+
+  // ---------- El Cronómetro Roto (Desierto Solar) ----------
+  {
+    id: "m_cronometro_roto",
+    type: "secundaria",
+    stage: "desierto",
+    title: "El Último de los Suyos",
+    giver: "anciano_ultimo",
+    description: "Habla con el Anciano Último en el Desierto Solar.",
+    objectives: [{ type: "hablarCon", target: "anciano_ultimo", count: 1, description: "Habla con el Anciano Último" }],
+    rewardMonedas: 400,
+    rewardDiamantes: 15,
+    rewardXp: 150,
+  },
+
+  // ---------- El Sol (batalla final) ----------
+  {
+    id: "s_cofres_sol",
+    type: "secundaria",
+    stage: "sol",
+    title: "Tesoros al Rojo Vivo",
+    giver: "mercader_cenizas",
+    description: "Encuentra 3 cofres escondidos en el Sol. Cuidado con el calor mientras los buscas.",
+    objectives: [{ type: "recogerCofres", target: "sol", count: 3, description: "Encuentra 3 cofres" }],
+    rewardMonedas: 4000,
+    rewardDiamantes: 100,
+    rewardXp: 1000,
+  },
+  {
+    id: "s_goles_sol",
+    type: "secundaria",
+    stage: "sol",
+    title: "Puntería bajo el Sol",
+    giver: "superviviente_llamas",
+    description: "Marca 8 goles en cualquier partido.",
+    objectives: [{ type: "marcarGoles", target: "any", count: 8, description: "Marca 8 goles" }],
+    rewardMonedas: 4000,
+    rewardDiamantes: 100,
+    rewardXp: 1000,
+  },
+  {
+    id: "s_partido_sol",
+    type: "secundaria",
+    stage: "sol",
+    title: "Entrénate antes de la Brecha",
+    giver: "ultima_voz",
+    description: "Gana un partido de entrenamiento en el Sol.",
+    objectives: [{ type: "ganarPartido", target: "campo_sol", count: 1, description: "Gana un partido de entrenamiento" }],
+    rewardMonedas: 4000,
+    rewardDiamantes: 100,
+    rewardXp: 1000,
+  },
+  {
+    id: "m_sol_acertijo",
+    type: "principal",
+    stage: "sol",
+    title: "El Acertijo del Altar",
+    giver: "sistema",
+    description: "Encuentra los 4 Fragmentos del Eclipse repartidos por el Sol y activa los 4 pilares del altar en el orden correcto.",
+    objectives: [{ type: "resolverAcertijo", target: "sol", count: 1, description: "Resuelve el acertijo del Altar del Eclipse" }],
+    rewardMonedas: 6000,
+    rewardDiamantes: 200,
+    rewardXp: 2500,
+  },
+  {
+    id: "m_sol_jefe",
+    type: "principal",
+    stage: "sol",
+    title: "La Brecha Dimensional",
+    giver: "sistema",
+    description: "Sobrevive 5 minutos a Heliarca y márcale 5 goles, o resiste hasta que se acabe el tiempo.",
+    objectives: [{ type: "derrotarJefe", target: "sol", count: 1, description: "Sobrevive a Heliarca y abre la Brecha" }],
+    rewardMonedas: 15000,
+    rewardDiamantes: 500,
+    rewardXp: 6000,
+    requires: ["m_sol_acertijo"],
   },
 ];
 

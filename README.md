@@ -174,17 +174,60 @@ npm run preview
     mascotas, puerta secreta, guarida y varias misiones secundarias, igual
     de completa que cualquier otro mundo.
 
+- **El Sol: la batalla final (por ahora)**. Tras derrotar al Custodio
+  Corroído en la Estación Óxido, se desbloquea El Sol. No tiene guardianes:
+  su puerta se abre resolviendo el **Acertijo del Altar del Eclipse** — 4
+  fragmentos de texto escondidos en las esquinas del mapa narran (referenciando
+  los mundos ya conquistados) el orden en el que hay que activar 4 pilares;
+  un orden equivocado solo reinicia la secuencia, no mata. Mientras se
+  explora, el calor del Sol quita vida sin parar; hay que refugiarse en
+  cúpulas de choque térmico repartidas por el mapa para curarse.
+  - **La batalla final contra Heliarca** dura 5 minutos reales y tiene 3
+    fases: llamaradas aleatorias por el campo (0-2 min), ráfagas de radiación
+    dirigidas al jugador que matan al tercer impacto además de llamaradas más
+    frecuentes (2-4 min), y un último minuto de invulnerabilidad total del
+    jefe con meteoritos constantes donde la única salida es sobrevivir hasta
+    que el reloj llegue a cero. Meter 5 goles gana antes de tiempo; sobrevivir
+    los 5 minutos completos también cuenta como victoria.
+  - **El Cronómetro Roto**: un anciano en el Desierto Solar ("el último de
+    los suyos") entrega un objeto que no hace nada... hasta que se activa la
+    batalla final del Sol, donde absorbe energía solar y se convierte en el
+    **Reloj del Vacío**: un botón de un solo uso que ralentiza diez segundos
+    todo el campo (menos al jugador) para esquivar lo inevitable.
+  - Al ganar, una escena narra la apertura de una **Brecha Dimensional** y
+    deja la historia deliberadamente abierta: quedan más dimensiones por
+    delante.
+- **Hilo narrativo transversal**: casi todos los mundos (los 8 originales, los
+  3 planetas, la Estación Óxido y el Sol) tienen ahora un NPC centrado en la
+  historia general del juego —una civilización antigua, sellos repartidos por
+  cada mundo, y la promesa de que "cada vez queda menos gente" dispuesta a
+  seguir explorando— construyendo una trama continua e intencionalmente
+  inacabada.
+- **Inventario "Equipo"**: la pestaña de llaves ahora se llama Equipo y
+  además de las llaves de guardián muestra todo lo que el jugador lleva
+  encima sin entregar todavía (piezas de nave, botones de la pirámide, piezas
+  de cohete, objetos de favor de las zonas de guardián, fragmentos del Sol, y
+  objetos narrativos especiales como el Cronómetro Roto); cada entrada
+  desaparece de la lista en cuanto se entrega o se consume.
+- **Más mascotas**: 12 arquetipos de mascota (el doble que antes), dos por
+  cada poder, para que la colección se sienta menos repetida.
+
 ## Limitaciones conocidas / lo que NO incluye
 
 - **Música**: no se incluye música con derechos de autor. Se puede añadir
   después con archivos de audio propios.
 - **Partidos**: son 1 contra 1, con física arcade simplificada (sin
   colisiones de coche-coche perfectamente realistas).
-- El Sistema Solar tiene 3 planetas y 1 mundo de espacio profundo (Estación
-  Óxido) por ahora; añadir más sigue el mismo patrón de datos. Están
-  pendientes 2 mundos más de espacio profundo y "el Sol" con su mecánica de
-  calor/refugios y la mega batalla final, tal y como se planteó para esta
-  fase.
+- El Sistema Solar tiene 3 planetas, 1 mundo de espacio profundo (Estación
+  Óxido) y ya El Sol como batalla final; añadir más sigue el mismo patrón de
+  datos. Por petición explícita, el Sol se construyó antes que los otros 2
+  mundos de espacio profundo planeados (un cinturón de asteroides y un
+  agujero negro): siguen pendientes y, cuando se añadan, probablemente haya
+  que revisar el orden de desbloqueo del Sol para que dependa de ellos.
+- El Reloj del Vacío está listo para que futuras dimensiones reaccionen a él
+  (`gs.hasPuzzleItem("reloj_del_vacio")`), pero esa "próxima dimensión" en sí
+  todavía no existe: el juego termina la partida actual en la escena de la
+  Brecha Dimensional.
 - La mecánica "resonancia" de la Luna de Cristal usa un único cristal por
   guardián (no una secuencia de orden en un altar compartido); mantiene la
   exploración y el desbloqueo del domo, pero simplifica el puzzle de orden.

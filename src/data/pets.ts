@@ -18,11 +18,17 @@ export interface PetArchetype {
 
 export const PET_ARCHETYPES: PetArchetype[] = [
   { id: "chispa", name: "Chispa", power: "turboRecarga", shape: "icosaedro", description: "Un pequeño espíritu eléctrico que recarga tu turbo más rápido." },
+  { id: "relampago", name: "Relámpago", power: "turboRecarga", shape: "esfera", description: "Corre tan rápido que tu turbo apenas gasta energía." },
   { id: "golpetazo", name: "Golpetazo", power: "golpeFuerte", shape: "cubo", description: "Da más fuerza a cada golpe al balón." },
+  { id: "titan", name: "Titán", power: "golpeFuerte", shape: "octaedro", description: "Pesado y bruto: cada golpe suyo suena como un trueno." },
   { id: "espiral", name: "Espiral", power: "efectoCurva", shape: "octaedro", description: "Te permite curvar el balón en el aire." },
+  { id: "remolino", name: "Remolino", power: "efectoCurva", shape: "cubo", description: "Gira sobre sí mismo sin parar. El balón aprende a hacerlo también." },
   { id: "saltarin", name: "Saltarín", power: "saltoAlto", shape: "esfera", description: "Aumenta la altura de tus saltos para jugadas aéreas." },
+  { id: "brincador", name: "Brincador", power: "saltoAlto", shape: "icosaedro", description: "No sabe estarse quieto. Salta incluso cuando no hace falta." },
   { id: "guardian", name: "Guardián", power: "escudoGol", shape: "cubo", description: "Reduce la potencia de los disparos rivales cerca de tu portería." },
+  { id: "coraza", name: "Coraza", power: "escudoGol", shape: "esfera", description: "Una capa protectora que absorbe parte del impacto de cada disparo rival." },
   { id: "magneto", name: "Magneto", power: "iman", shape: "icosaedro", description: "Atrae ligeramente el balón hacia tu coche." },
+  { id: "graviton", name: "Gravitón", power: "iman", shape: "octaedro", description: "Dobla el espacio a su alrededor lo justo para que el balón se acerque." },
 ];
 
 export interface OwnedPet {

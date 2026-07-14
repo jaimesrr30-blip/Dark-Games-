@@ -190,7 +190,7 @@ export const UI_TEMPLATE = `
       <button class="tab-btn active interactive" data-itab="cosmeticos">Cosméticos</button>
       <button class="tab-btn interactive" data-itab="mascotas">Mascotas</button>
       <button class="tab-btn interactive" data-itab="titulos">Títulos</button>
-      <button class="tab-btn interactive" data-itab="llaves">🗝️ Llaves</button>
+      <button class="tab-btn interactive" data-itab="equipo">🎒 Equipo</button>
     </div>
     <div class="modal-body" id="inventory-list"></div>
   </div>
@@ -247,6 +247,7 @@ export const UI_TEMPLATE = `
       <span id="match-pet-power">Poder</span>
     </span>
   </div>
+  <button id="btn-void-clock" class="btn-arrow gold interactive hidden">⏳ Usar Reloj del Vacío</button>
   <div id="match-control-hint">WASD / Flechas para moverte · Espacio para turbo</div>
 </div>
 

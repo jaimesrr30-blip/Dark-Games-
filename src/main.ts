@@ -24,10 +24,12 @@ import {
   ROCKET_ENGINE_ID,
   HIDEOUTS,
   planetShipParts,
+  sheltersForStage,
   type HideoutSpawn,
 } from "./data/spawns";
 import { ZONE_QUESTS, zoneQuestsForStage, zoneQuestForGuardian, type ZoneQuest, type ZoneUnlockKind } from "./data/zoneQuests";
 import { parkourForGuardian, type ParkourChallenge } from "./data/parkour";
+import { ECLIPSE_FRAGMENTS, SOL_PILLARS, SOL_RIDDLE_SOLVED_ID, eclipseFragmentIds } from "./data/solRiddle";
 import { petSellPrice } from "./data/pets";
 import { hashString } from "./utils/random";
 
@@ -75,6 +77,7 @@ function damagePlayer(amount: number) {
 function killPlayer() {
   if (mode === "solarmap") return;
   ui.hideMatchHUD();
+  ui.hideVoidClockButton();
   match = null;
   matchEnding = false;
   pendingGuardian = null;
@@ -117,6 +120,19 @@ let travel: PlanetTravel | null = null;
 let solarMapReturnPos: [number, number] | null = null;
 let solarMapSelected = 0;
 let solarMapT = 0;
+
+// ---------------- Acertijo del Altar del Eclipse (Sol) ----------------
+let solPillarProgress = 0;
+
+// ---------------- Calor del Sol: refugios ----------------
+const SUN_HEAT_PER_SEC = 6;
+const SUN_HEAL_PER_SEC = 20;
+let wasInSunShelter = false;
+
+function bossGateReady(id: StageId): boolean {
+  if (STAGES[id].riddleGate) return gs.hasPuzzleItem(SOL_RIDDLE_SOLVED_ID);
+  return gs.stageKeysStatus(id).ready;
+}
 
 function resize() {
   const w = window.innerWidth;
@@ -172,6 +188,10 @@ function talkToNpc(npc: Npc2DInstance) {
   }
   if (def.id === "ingeniera_trajes") {
     talkToSpacesuitCrafter(def);
+    return;
+  }
+  if (def.id === "anciano_ultimo") {
+    talkToOldMan(def);
     return;
   }
   const mechanicPlanet = planetShipMechanics()[def.id];
@@ -249,6 +269,16 @@ function talkToSpacesuitCrafter(def: NpcDef) {
         ui.toast("No tienes suficientes monedas para el traje espacial.");
       }
     });
+  });
+}
+
+function talkToOldMan(def: NpcDef) {
+  ui.openDialogue(def.name, def.dialogue, () => {
+    gs.notifyEvent("hablarCon", def.id, 1);
+    if (!gs.hasPuzzleItem("cronometro_roto")) {
+      gs.collectPuzzleItem("cronometro_roto");
+      ui.toast("Has recibido el Cronómetro Roto. No hace nada... todavía.", "epico");
+    }
   });
 }
 
@@ -414,6 +444,31 @@ function talkToPyramidGuardian(def: NpcDef) {
   }
 }
 
+function interactSolPillar(pillar: (typeof SOL_PILLARS)[number]) {
+  if (gs.hasPuzzleItem(SOL_RIDDLE_SOLVED_ID)) {
+    ui.toast("El altar ya está activado. La puerta está abierta.", "raro");
+    return;
+  }
+  const have = gs.countPuzzleItems(eclipseFragmentIds());
+  if (have < ECLIPSE_FRAGMENTS.length) {
+    ui.toast(`Aún te faltan fragmentos del eclipse (${have}/${ECLIPSE_FRAGMENTS.length}). Sin ellos, no sabrás el orden.`);
+    return;
+  }
+  if (pillar.order === solPillarProgress + 1) {
+    solPillarProgress++;
+    if (solPillarProgress >= SOL_PILLARS.length) {
+      gs.collectPuzzleItem(SOL_RIDDLE_SOLVED_ID);
+      gs.notifyEvent("resolverAcertijo", "sol", 1);
+      ui.toast("¡Los 4 pilares resuenan al unísono! La Brecha se abre.", "prohibido");
+    } else {
+      ui.toast(`Correcto (${solPillarProgress}/${SOL_PILLARS.length}). Continúa con el siguiente pilar.`, "raro");
+    }
+  } else {
+    solPillarProgress = 0;
+    ui.toast("La secuencia se reinicia. Recuerda el orden de los fragmentos.");
+  }
+}
+
 function beginGuardianMatch(def: NpcDef) {
   pendingGuardian = def;
   match = new Match2D(gs, input, "normal", stage.def.id, def.guardian!.difficulty, def.color, fieldThemeForGuardian(def));
@@ -439,9 +494,28 @@ function beginMatch(modeType: "normal" | "boss") {
   ui.setMatchPetBadge(match.activePetBadge);
 }
 
+function beginSolFinalBattle() {
+  if (gs.hasPuzzleItem("cronometro_roto") && !gs.hasPuzzleItem("reloj_del_vacio")) {
+    gs.collectPuzzleItem("reloj_del_vacio");
+    ui.toast("El Cronómetro Roto absorbe la energía del Sol... ¡y despierta! Ahora es el Reloj del Vacío.", "prohibido");
+  }
+  const hasClock = gs.hasPuzzleItem("reloj_del_vacio");
+  match = new Match2D(gs, input, "boss", stage.def.id, 1.05, undefined, undefined, true, damagePlayer, true, hasClock);
+  camera.snap(0, 0);
+  mode = "match";
+  ui.showMatchHUD();
+  ui.setMatchPetBadge(match.activePetBadge);
+  if (hasClock) {
+    ui.showVoidClockButton(() => {
+      if (match?.activateVoidClock()) ui.toast("¡El tiempo se ralentiza! Diez segundos para escapar de lo inevitable.", "prohibido");
+    });
+  }
+}
+
 function endMatch() {
   if (!match || !match.result || matchEnding) return;
   matchEnding = true;
+  ui.hideVoidClockButton();
   const r = match.result;
   const guardian = pendingGuardian;
   pendingGuardian = null;
@@ -464,16 +538,19 @@ function endMatch() {
     wonRocketEngine = true;
   }
 
+  const isSolFinal = r.mode === "boss" && r.stage === "sol";
   const rewardsText = r.won
-    ? guardian
-      ? `${guardian.guardian!.winLine} +200 monedas · +4 diamantes · +120 XP`
-      : hideout
-        ? `¡Guarida despejada! +${hideout.rewardCoins} monedas${hideout.rewardItemId ? " · +1 objeto" : ""} · +8 diamantes · +130 XP`
-        : r.mode === "boss"
-          ? wonRocketEngine
-            ? "+900 monedas · +30 diamantes · +450 XP · ¡Consigues el motor del cohete!"
-            : "+900 monedas · +30 diamantes · +450 XP · ¡Siguiente etapa desbloqueada!"
-          : "+200 monedas · +4 diamantes · +120 XP"
+    ? isSolFinal
+      ? "+15.000 monedas · +500 diamantes · +6.000 XP · ¡La Brecha Dimensional se abre!"
+      : guardian
+        ? `${guardian.guardian!.winLine} +200 monedas · +4 diamantes · +120 XP`
+        : hideout
+          ? `¡Guarida despejada! +${hideout.rewardCoins} monedas${hideout.rewardItemId ? " · +1 objeto" : ""} · +8 diamantes · +130 XP`
+          : r.mode === "boss"
+            ? wonRocketEngine
+              ? "+900 monedas · +30 diamantes · +450 XP · ¡Consigues el motor del cohete!"
+              : "+900 monedas · +30 diamantes · +450 XP · ¡Siguiente etapa desbloqueada!"
+            : "+200 monedas · +4 diamantes · +120 XP"
     : "Sin recompensas esta vez. ¡Inténtalo de nuevo!";
   ui.hideMatchHUD();
   ui.showMatchEnd(r.won, r.scoreA, r.scoreB, rewardsText, () => {
@@ -481,6 +558,9 @@ function endMatch() {
     matchEnding = false;
     mode = hideout ? "hideout" : "world";
     if (r.won && r.mode === "boss") portalFxT = 1.4;
+    if (r.won && isSolFinal) {
+      ui.showDimensionRift(() => {});
+    }
   });
 }
 
@@ -772,6 +852,35 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     }
   }
 
+  if (stage.def.id === "sol") {
+    for (const frag of ECLIPSE_FRAGMENTS) {
+      if (gs.hasPuzzleItem(frag.id)) continue;
+      const d = Math.hypot(p.x - frag.pos[0], p.y - frag.pos[1]);
+      if (d < 45 && (!best || d < best.dist)) {
+        best = {
+          dist: d,
+          label: `Leer ${frag.title}`,
+          run: () => {
+            gs.collectPuzzleItem(frag.id);
+            const have = gs.countPuzzleItems(eclipseFragmentIds());
+            ui.toast(`${frag.title}: ${frag.text} (${have}/${ECLIPSE_FRAGMENTS.length})`, "epico");
+          },
+        };
+      }
+    }
+
+    for (const pillar of SOL_PILLARS) {
+      const d = Math.hypot(p.x - pillar.pos[0], p.y - pillar.pos[1]);
+      if (d < 50 && (!best || d < best.dist)) {
+        best = {
+          dist: d,
+          label: gs.hasPuzzleItem(SOL_RIDDLE_SOLVED_ID) ? `${pillar.label} (activado)` : `Activar ${pillar.label}`,
+          run: () => interactSolPillar(pillar),
+        };
+      }
+    }
+  }
+
   const [tx, ty] = stage.trainingFieldPos;
   const dTrain = Math.hypot(p.x - tx, p.y - ty);
   if (dTrain < 60 && (!best || dTrain < best.dist)) {
@@ -782,17 +891,29 @@ function findNearestInteraction(): { label: string; run: () => void } | null {
     const [gx, gy] = stage.bossGatePos;
     const dGate = Math.hypot(p.x - gx, p.y - gy);
     if (dGate < 70 && (!best || dGate < best.dist)) {
-      const gate = gs.stageKeysStatus(stage.def.id);
-      const locked = !gate.ready;
+      const riddle = !!stage.def.riddleGate;
+      const ready = bossGateReady(stage.def.id);
+      const gate = riddle ? null : gs.stageKeysStatus(stage.def.id);
+      const locked = !ready;
       best = {
         dist: dGate,
-        label: locked ? `Puerta bloqueada (llaves ${gate.have}/${gate.required})` : `Desafiar a ${stage.def.bossName}`,
+        label: locked
+          ? riddle
+            ? "Puerta bloqueada (resuelve el acertijo del altar)"
+            : `Puerta bloqueada (llaves ${gate!.have}/${gate!.required})`
+          : riddle
+            ? `Enfrentar a ${stage.def.bossName} (batalla final)`
+            : `Desafiar a ${stage.def.bossName}`,
         run: () => {
           if (locked) {
-            ui.toast("Aún no tienes las 3 llaves de esta etapa.");
+            ui.toast(riddle ? "Aún no has resuelto el acertijo del Altar del Eclipse." : "Aún no tienes las 3 llaves de esta etapa.");
             return;
           }
-          beginKeyCeremony(() => ui.showBossIntro(stage.def.id, () => beginMatch("boss")));
+          if (riddle) {
+            ui.showBossIntro(stage.def.id, () => beginSolFinalBattle());
+          } else {
+            beginKeyCeremony(() => ui.showBossIntro(stage.def.id, () => beginMatch("boss")));
+          }
         },
       };
     }
@@ -822,13 +943,19 @@ function loop(tsMs: number) {
     stage.drawProps(ctx, camera);
     stage.drawLandmarks(ctx, camera);
     stage.drawTrainingField(ctx, camera);
-    stage.drawBossGate(ctx, camera, gs.stageKeysStatus(stage.def.id).ready, gs.isBossDefeated(stage.def.id));
+    stage.drawBossGate(ctx, camera, bossGateReady(stage.def.id), gs.isBossDefeated(stage.def.id));
     if (stage.def.id === "desierto") drawPyramidAndButtons();
     if (stage.def.id === "celestial") drawRocketParts();
     drawPlanetShipParts();
     drawZoneQuestFeatures();
     drawSecretDoor();
     drawHideoutDoor();
+    if (stage.def.id === "sol") {
+      drawSunShelters();
+      drawSolFragments();
+      drawSolPillars();
+      if (!modalOpen) applySunHeat(dt);
+    }
     stage.drawBounds(ctx, camera);
 
     for (const it of interactables) it.draw(ctx, camera, performance.now() / 1000);
@@ -1101,6 +1228,110 @@ function drawPlanetShipParts() {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
+  }
+}
+
+// ---------------- El Sol: calor, refugios y el acertijo del altar ----------------
+
+function applySunHeat(dt: number) {
+  const shelters = sheltersForStage("sol");
+  const inShelter = shelters.some((s) => Math.hypot(player.x - s.pos[0], player.y - s.pos[1]) < s.radius);
+  if (inShelter) {
+    if (!wasInSunShelter) ui.toast("Refugio. El calor se detiene y tu vida se recupera.", "raro");
+    playerHealth = Math.min(MAX_HEALTH, playerHealth + SUN_HEAL_PER_SEC * dt);
+    ui.updateHealth(playerHealth, MAX_HEALTH);
+  } else {
+    if (wasInSunShelter) ui.toast("Sales del refugio. El calor vuelve a quemar.");
+    damagePlayer(SUN_HEAT_PER_SEC * dt);
+  }
+  wasInSunShelter = inShelter;
+}
+
+function drawSunShelters() {
+  for (const s of sheltersForStage("sol")) {
+    if (!camera.isVisible(s.pos[0], s.pos[1], s.radius + 40)) continue;
+    const [sx, sy] = camera.worldToScreen(s.pos[0], s.pos[1]);
+    const pulse = 0.5 + Math.sin(performance.now() / 500) * 0.15;
+    ctx.save();
+    ctx.globalAlpha = pulse * 0.35;
+    ctx.fillStyle = "#8fd3ff";
+    ctx.beginPath();
+    ctx.arc(sx, sy, s.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = "#8fd3ff";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    ctx.font = "bold 12px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#cdeeff";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 3;
+    ctx.fillText("REFUGIO", sx, sy - s.radius - 10);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawSolFragments() {
+  for (const frag of ECLIPSE_FRAGMENTS) {
+    if (gs.hasPuzzleItem(frag.id)) continue;
+    if (!camera.isVisible(frag.pos[0], frag.pos[1])) continue;
+    const [sx, sy] = camera.worldToScreen(frag.pos[0], frag.pos[1]);
+    const bob = Math.sin(performance.now() / 450 + frag.pos[0]) * 5;
+    ctx.save();
+    ctx.translate(sx, sy + bob);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = "#ffcf3d";
+    ctx.fillRect(-11, -11, 22, 22);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-11, -11, 22, 22);
+    ctx.restore();
+    ctx.font = "bold 11px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffe9a8";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 3;
+    ctx.fillText(frag.title, sx, sy - 26);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawSolPillars() {
+  const solved = gs.hasPuzzleItem(SOL_RIDDLE_SOLVED_ID);
+  for (const pillar of SOL_PILLARS) {
+    if (!camera.isVisible(pillar.pos[0], pillar.pos[1])) continue;
+    const [sx, sy] = camera.worldToScreen(pillar.pos[0], pillar.pos[1]);
+    const lit = solved || pillar.order <= solPillarProgress;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.globalAlpha = lit ? 1 : 0.55;
+    ctx.fillStyle = pillar.color;
+    roundRect(ctx, -14, -40, 28, 60, 5);
+    ctx.fill();
+    ctx.strokeStyle = lit ? "#fff" : "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, -14, -40, 28, 60, 5);
+    ctx.stroke();
+    if (lit) {
+      const glow = 0.4 + Math.sin(performance.now() / 300) * 0.2;
+      ctx.globalAlpha = glow;
+      ctx.beginPath();
+      ctx.arc(0, -46, 12, 0, Math.PI * 2);
+      ctx.fillStyle = pillar.color;
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.font = "bold 11px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 3;
+    ctx.fillText(pillar.label, sx, sy - 66);
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -1603,6 +1834,12 @@ function startGame() {
         gs.collectPuzzleItem(ROCKET_ENGINE_ID);
       },
       enterSolarMap: () => enterSolarMap(),
+      loadStage: (id: StageId, pos?: [number, number]) => {
+        loadStage(id, pos);
+        mode = "world";
+        ui.showWorldMenus();
+      },
+      beginSolFinalBattle: () => beginSolFinalBattle(),
     };
   }
 }

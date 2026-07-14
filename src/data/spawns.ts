@@ -57,6 +57,10 @@ export const CHESTS: ChestSpawn[] = [
   { id: "chest_estacion_1", stage: "estacion_oxido", pos: [520, 420], minRarity: "legendario" },
   { id: "chest_estacion_2", stage: "estacion_oxido", pos: [-560, -380], minRarity: "dios" },
   { id: "chest_estacion_3", stage: "estacion_oxido", pos: [900, -980], minRarity: "secreto" },
+
+  { id: "chest_sol_1", stage: "sol", pos: [500, 250], minRarity: "dios" },
+  { id: "chest_sol_2", stage: "sol", pos: [-500, -250], minRarity: "divino" },
+  { id: "chest_sol_3", stage: "sol", pos: [0, -400], minRarity: "prohibido" },
 ];
 
 export const PET_SPAWNS: PetSpawnPoint[] = [
@@ -81,6 +85,9 @@ export const PET_SPAWNS: PetSpawnPoint[] = [
 
   { id: "pet_estacion_1", stage: "estacion_oxido", pos: [-340, 520] },
   { id: "pet_estacion_2", stage: "estacion_oxido", pos: [640, -240] },
+
+  { id: "pet_sol_1", stage: "sol", pos: [-300, 600] },
+  { id: "pet_sol_2", stage: "sol", pos: [400, -600] },
 ];
 
 export interface PuzzleButtonSpawn {
@@ -131,6 +138,27 @@ export function planetShipParts(stage: StageId): PuzzleButtonSpawn[] {
   return PLANET_SHIP_PARTS.filter((p) => p.stage === stage);
 }
 export const ROCKET_ENGINE_ID = "motor_cohete";
+
+export interface ShelterSpawn {
+  id: string;
+  stage: StageId;
+  pos: [number, number];
+  radius: number;
+}
+
+// Refugios contra el calor del Sol: dentro del radio, la vida se regenera;
+// fuera de todos ellos, el calor la va consumiendo sin parar.
+export const SUN_SHELTERS: ShelterSpawn[] = [
+  { id: "refugio_sol_centro", stage: "sol", pos: [0, 300], radius: 150 },
+  { id: "refugio_sol_no", stage: "sol", pos: [-900, 500], radius: 140 },
+  { id: "refugio_sol_ne", stage: "sol", pos: [900, 500], radius: 140 },
+  { id: "refugio_sol_so", stage: "sol", pos: [-900, -500], radius: 140 },
+  { id: "refugio_sol_se", stage: "sol", pos: [900, -500], radius: 140 },
+];
+
+export function sheltersForStage(stage: StageId): ShelterSpawn[] {
+  return SUN_SHELTERS.filter((s) => s.stage === stage);
+}
 
 export interface SecretDoorSpawn {
   id: string;

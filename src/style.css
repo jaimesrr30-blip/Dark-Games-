@@ -1114,6 +1114,19 @@ body {
   0%, 100% { opacity: 0.4; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.25); }
 }
+#btn-void-clock {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  z-index: 5;
+  animation: void-clock-pulse 1.4s ease-in-out infinite;
+}
+@keyframes void-clock-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(143, 211, 255, 0); }
+  50% { box-shadow: 0 0 18px rgba(143, 211, 255, 0.8); }
+}
 #match-pet-badge {
   position: absolute;
   top: 16px;

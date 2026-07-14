@@ -6,9 +6,12 @@ import { RARITIES, type Rarity } from "../data/rarity";
 import { ITEMS, itemsBySlot, getItem, type ItemSlot } from "../data/items";
 import { shopCatalog } from "../data/shops";
 import { MISSIONS, type MissionType } from "../data/missions";
-import { STAGES, STAGE_ORDER, PLANET_ORDER, type StageId } from "../data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, STATION_ORDER, type StageId } from "../data/stages";
 import { NPCS, guardiansForStage, type NpcDef } from "../data/npcs";
-import { CHESTS, PET_SPAWNS } from "../data/spawns";
+import { CHESTS, PET_SPAWNS, ROCKET_PARTS, ROCKET_ENGINE_ID, PYRAMID_BUTTONS, planetShipParts } from "../data/spawns";
+import { ZONE_QUESTS } from "../data/zoneQuests";
+import { ECLIPSE_FRAGMENTS, SOL_RIDDLE_SOLVED_ID, eclipseFragmentIds } from "../data/solRiddle";
+import { SPECIAL_ITEMS } from "../data/specialItems";
 import { PET_ARCHETYPES, petSellPrice } from "../data/pets";
 import { visualFromState } from "../entities/carVisual";
 import type { Stage2D } from "../stage/Stage2D";
@@ -36,7 +39,7 @@ export class UIManager {
   garagePreview: GaragePreview2D | null = null;
   private currentMissionTab: MissionType = "principal";
   private currentMissionStage: StageId | "all" = "all";
-  private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" | "llaves" = "cosmeticos";
+  private currentInventoryTab: "cosmeticos" | "mascotas" | "titulos" | "equipo" = "cosmeticos";
   private currentGarageSlot: ItemSlot = "color";
   private minimapCtx: CanvasRenderingContext2D;
   onEquipChange: (() => void) | null = null;
@@ -81,7 +84,7 @@ export class UIManager {
     });
     document.querySelectorAll<HTMLElement>("[data-itab]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        this.currentInventoryTab = btn.dataset.itab as "cosmeticos" | "mascotas" | "titulos" | "llaves";
+        this.currentInventoryTab = btn.dataset.itab as "cosmeticos" | "mascotas" | "titulos" | "equipo";
         document.querySelectorAll("[data-itab]").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         this.renderInventoryList();
@@ -155,6 +158,34 @@ export class UIManager {
       screen.classList.remove("show");
       onClose();
     };
+  }
+
+  showDimensionRift(onClose: () => void) {
+    const screen = qs("#ending-screen");
+    qs("#ending-text").innerHTML = `
+      <p>El campo se resquebraja. Donde estaba Heliarca ahora solo hay una grieta de luz blanca, silenciosa.</p>
+      <p>Has sobrevivido al Sol. Has cruzado cada mundo, cada llave, cada guardián... y has llegado más lejos de lo que nadie tiene registrado.</p>
+      <p>La Brecha se abre ante ti. Nadie sabe qué hay del otro lado. Ni siquiera esta historia lo sabe todavía.</p>
+      <p><b>Fin de esta dimensión... por ahora.</b></p>`;
+    screen.classList.add("show");
+    qs<HTMLButtonElement>("#btn-ending-close").onclick = () => {
+      screen.classList.remove("show");
+      onClose();
+    };
+  }
+
+  // ---------- Reloj del Vacío (batalla final del Sol) ----------
+  showVoidClockButton(onUse: () => void) {
+    const btn = qs<HTMLButtonElement>("#btn-void-clock");
+    btn.classList.remove("hidden");
+    btn.onclick = () => {
+      btn.classList.add("hidden");
+      onUse();
+    };
+  }
+
+  hideVoidClockButton() {
+    qs("#btn-void-clock").classList.add("hidden");
   }
 
   // ---------- Selector con flechita ----------
@@ -460,8 +491,8 @@ export class UIManager {
 
   private renderInventoryList() {
     const list = qs("#inventory-list");
-    if (this.currentInventoryTab === "llaves") {
-      this.renderKeysList();
+    if (this.currentInventoryTab === "equipo") {
+      this.renderEquipoList();
       return;
     }
     if (this.currentInventoryTab === "mascotas") {
@@ -527,9 +558,14 @@ export class UIManager {
     });
   }
 
-  private renderKeysList() {
+  // La pestaña "Equipo" muestra las llaves de guardianes (como antes, la
+  // pestaña "Llaves") además de todo lo que el jugador lleva encima ahora
+  // mismo y aún no ha entregado a nadie: piezas de nave, botones, objetos de
+  // favor de las zonas de guardián, fragmentos del Sol y objetos narrativos
+  // especiales. En cuanto se entregan/consumen, desaparecen de la lista.
+  private renderEquipoList() {
     const list = qs("#inventory-list");
-    const stagesWithGuardians = [...STAGE_ORDER.filter((id) => id !== "hub"), ...PLANET_ORDER];
+    const stagesWithGuardians = [...STAGE_ORDER.filter((id) => id !== "hub"), ...PLANET_ORDER, ...STATION_ORDER];
     let html = "";
     for (const stageId of stagesWithGuardians) {
       const stageDef = STAGES[stageId];
@@ -559,6 +595,67 @@ export class UIManager {
           </div>
         </div>`;
     }
+
+    const carried: { icon: string; name: string; sub: string }[] = [];
+
+    for (const planet of PLANET_ORDER) {
+      if (this.gs.isPlanetShipBuilt(planet)) continue;
+      const parts = planetShipParts(planet);
+      const have = this.gs.countPuzzleItems(parts.map((p) => p.id));
+      if (have > 0) carried.push({ icon: "🔧", name: `Piezas de nave — ${STAGES[planet].name}`, sub: `${have}/${parts.length} encontradas` });
+    }
+
+    if (!this.gs.isStageUnlocked(PLANET_ORDER[0])) {
+      const have = this.gs.countPuzzleItems([...ROCKET_PARTS.map((p) => p.id), ROCKET_ENGINE_ID]);
+      if (have > 0) carried.push({ icon: "🚀", name: "Piezas del cohete", sub: `${have}/${ROCKET_PARTS.length + 1} encontradas` });
+    }
+
+    const custodioPiramide = NPCS.find((n) => n.id === "custodio_piramide");
+    if (custodioPiramide?.guardian && !this.gs.hasKey(custodioPiramide.guardian.keyId)) {
+      const have = this.gs.countPuzzleItems(PYRAMID_BUTTONS.map((b) => b.id));
+      if (have > 0) carried.push({ icon: "🔶", name: "Botones de piedra — Pirámide", sub: `${have}/${PYRAMID_BUTTONS.length} encontrados` });
+    }
+
+    for (const zq of ZONE_QUESTS) {
+      const guardianDef = NPCS.find((n) => n.id === zq.guardianId);
+      const gotKey = !!(guardianDef?.guardian && this.gs.hasKey(guardianDef.guardian.keyId));
+      if (!gotKey && this.gs.hasPuzzleItem(zq.favorItemId)) {
+        carried.push({ icon: "🎁", name: zq.favorLabel, sub: `Para ${guardianDef?.name ?? "su dueño"}` });
+      }
+    }
+
+    if (!this.gs.hasPuzzleItem(SOL_RIDDLE_SOLVED_ID)) {
+      const have = this.gs.countPuzzleItems(eclipseFragmentIds());
+      if (have > 0) carried.push({ icon: "🔺", name: "Fragmentos del Eclipse", sub: `${have}/${ECLIPSE_FRAGMENTS.length} leídos` });
+    }
+
+    for (const item of SPECIAL_ITEMS) {
+      if (this.gs.hasPuzzleItem(item.id)) carried.push({ icon: "⏳", name: item.name, sub: item.description });
+    }
+
+    if (carried.length > 0) {
+      html += `
+        <div class="keys-stage-group">
+          <div class="keys-stage-header" style="border-color:var(--accent);">
+            <span class="keys-stage-name">En tu mochila</span>
+          </div>
+          <div class="keys-grid">
+            ${carried
+              .map(
+                (c) => `
+              <div class="key-card obtained">
+                <span class="key-icon">${c.icon}</span>
+                <span class="key-info">
+                  <span class="key-name">${c.name}</span>
+                  <span class="key-sub">${c.sub}</span>
+                </span>
+              </div>`
+              )
+              .join("")}
+          </div>
+        </div>`;
+    }
+
     list.innerHTML =
       html || `<div style="color:var(--text-dim);padding:20px;text-align:center;">Aún no has encontrado a ningún guardián.</div>`;
   }

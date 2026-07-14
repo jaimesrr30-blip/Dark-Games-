@@ -77,10 +77,24 @@ export const NPCS: NpcDef[] = [
       "Dicen que hace mucho tiempo, ocho campeones gobernaban ocho mundos distintos.",
       "Solo quien reúna las llaves de cada mundo y venza a sus luchadores podrá enfrentarse al Campeón Eterno.",
       "Y dicen también... que en el último mundo se esconde algo capaz de llevarte más allá de todo lo conocido.",
+      "Y quienes lleguen hasta el Sol encontrarán la verdadera puerta. Nadie sabe todavía qué hay del otro lado.",
     ],
   },
 
   // ---------------- Ciudad Futurista ----------------
+  {
+    id: "cronista_errante",
+    name: "Cronista Errante",
+    stage: "ciudad",
+    pos: [0, 300],
+    color: "#c9a3ff",
+    role: "historia",
+    dialogue: [
+      "Viajo de ciudad en ciudad recogiendo historias. La tuya, piloto, todavía se está escribiendo.",
+      "Dicen que este mundo no es el único. Que hay siete más, y que todos guardan un pedazo de algo mucho más grande.",
+      "Sigue tu camino. Con cada llave que consigues, se entiende un poco más el dibujo completo.",
+    ],
+  },
   {
     id: "vendedor_neo",
     name: "Vendedor Neo",
@@ -207,6 +221,21 @@ export const NPCS: NpcDef[] = [
     missionIds: ["s_piramide_desierto"],
     guardian: guardian("key_desierto_3", 0, 1, {}),
   },
+  {
+    id: "anciano_ultimo",
+    name: "Anciano Ultimo",
+    stage: "desierto",
+    pos: [-420, 420],
+    color: "#8a7358",
+    role: "historia",
+    dialogue: [
+      "Siéntate un momento, piloto. El desierto no tiene prisa, y yo ya no tengo a nadie con quien hablar.",
+      "Yo vine de otro lugar, hace mucho. Ya no queda nadie más de los míos por aquí. Cada vez queda menos gente en todas partes, ¿sabes?",
+      "Toma esto. No sé para qué sirve... solo sé que un día, en el lugar más caliente que existe, lo recordará.",
+      "Guárdalo bien. Algunas cosas no sirven de nada hasta que sí sirven de todo.",
+    ],
+    missionIds: ["m_cronometro_roto"],
+  },
 
   // ---------------- Bosque Mágico ----------------
   {
@@ -267,6 +296,19 @@ export const NPCS: NpcDef[] = [
     role: "guardian",
     dialogue: ["Esta fuente sella la última llave hacia Sylvara."],
     guardian: guardian("key_bosque_3", 600, 0.58),
+  },
+  {
+    id: "vidente_musgo",
+    name: "Vidente del Musgo",
+    stage: "bosque",
+    pos: [300, 350],
+    color: "#8bf49a",
+    role: "historia",
+    dialogue: [
+      "El bosque recuerda antes de que hubiera nombres para las cosas.",
+      "Recuerda a alguien que corrió por aquí, hace mucho, huyendo de algo que nunca lo alcanzó del todo... pero que tampoco lo dejó ir.",
+      "Cada vez veo menos pilotos nuevos. Los que quedan ya casi no hablan de otra cosa que del Sol.",
+    ],
   },
 
   // ---------------- Zona Volcánica ----------------
@@ -329,6 +371,19 @@ export const NPCS: NpcDef[] = [
     dialogue: ["Al borde del cráter se decide quién merece enfrentar a Ignarok."],
     guardian: guardian("key_volcan_3", 760, 0.66),
   },
+  {
+    id: "forjador_ecos",
+    name: "Forjador de Ecos",
+    stage: "volcan",
+    pos: [-300, 300],
+    color: "#ff9d2f",
+    role: "historia",
+    dialogue: [
+      "Cada jefe que derrotas no es solo un enemigo, piloto. Es un sello.",
+      "Y cada sello que rompes despierta algo más allá, más lejos... más hambriento de respuestas.",
+      "No te lo digo para asustarte. Te lo digo porque alguien tenía que hacerlo, y cada vez queda menos gente dispuesta.",
+    ],
+  },
 
   // ---------------- Reino Helado ----------------
   {
@@ -389,6 +444,19 @@ export const NPCS: NpcDef[] = [
     role: "guardian",
     dialogue: ["Frosthelm confía en mí para proteger su reino."],
     guardian: guardian("key_helado_3", 900, 0.74),
+  },
+  {
+    id: "guardiana_escarcha_vieja",
+    name: "Guardiana de la Escarcha Vieja",
+    stage: "helado",
+    pos: [300, 300],
+    color: "#d0f0ff",
+    role: "historia",
+    dialogue: [
+      "El hielo conserva lo que el tiempo debería borrar.",
+      "Aquí abajo, bajo capas y capas de escarcha, hay algo con forma de nave... o de puerta. Nadie se ha atrevido a cavar tan hondo.",
+      "Sigue subiendo, piloto. Cuanto más alto llegues, más frío hace... y más se ve del sistema entero.",
+    ],
   },
 
   // ---------------- Islas Flotantes ----------------
@@ -451,6 +519,19 @@ export const NPCS: NpcDef[] = [
     dialogue: ["Este puente de energía es el último paso antes de Aeris."],
     guardian: guardian("key_islas_3", 1040, 0.82),
   },
+  {
+    id: "errante_viento",
+    name: "Errante del Viento",
+    stage: "islas",
+    pos: [-300, 350],
+    color: "#a8ffcf",
+    role: "historia",
+    dialogue: [
+      "Cuando llegues al Reino Celestial, mira hacia arriba. No hay techo. Solo estrellas.",
+      "Y más allá de las estrellas, dicen que hay más mundos esperando a quien se atreva a cruzar el Sol.",
+      "Yo ya no me atrevo. Pero tú pareces distinto a los demás.",
+    ],
+  },
 
   // ---------------- Laboratorio Tecnológico ----------------
   {
@@ -512,6 +593,19 @@ export const NPCS: NpcDef[] = [
     dialogue: ["La Unidad Ω fue creada aquí. Solo los mejores llegan hasta ella."],
     guardian: guardian("key_laboratorio_3", 1180, 0.9),
   },
+  {
+    id: "archivo_corrupto",
+    name: "Archivo Corrupto",
+    stage: "laboratorio",
+    pos: [300, -300],
+    color: "#4dffe0",
+    role: "historia",
+    dialogue: [
+      "Datos... incompletos. Ocho sellos. Tres planetas. Una estación. Un sol.",
+      "Después... [ERROR]. No hay registro de lo que sigue. El sistema se corrompió antes de terminar de escribirlo.",
+      "Recomendación: continúe usted mismo la investigación, piloto. Es lo único que puedo ofrecer.",
+    ],
+  },
 
   // ---------------- Reino Celestial ----------------
   {
@@ -521,7 +615,11 @@ export const NPCS: NpcDef[] = [
     pos: [0, 260],
     color: "#ffd76b",
     role: "historia",
-    dialogue: ["Has llegado hasta aquí, piloto. Solo queda un desafío: el Campeón Eterno.", "Buena suerte. El mundo entero te observa."],
+    dialogue: [
+      "Has llegado hasta aquí, piloto. Solo queda un desafío: el Campeón Eterno.",
+      "Buena suerte. El mundo entero te observa.",
+      "El Campeón Eterno no es el final. Es solo el último guardián de este mundo. Más allá te espera el sistema solar entero... y más allá de él, algo todavía más grande.",
+    ],
   },
   {
     id: "vendedora_celestial",
@@ -647,6 +745,7 @@ export const NPCS: NpcDef[] = [
     dialogue: [
       "Cuando caí aquí encontré los restos de una nave... nada que no se pueda arreglar con las piezas correctas.",
       "Están muy escondidas por todo el planeta. Y antes de tocar nada, quiero verte derrotar a Vorrak con mis propios ojos.",
+      "Esta nave es más vieja de lo que parece, piloto. Alguien la construyó antes que nosotros. Alguien que también lo intentó.",
     ],
     missionIds: ["m_nave_escarlata"],
   },
@@ -711,6 +810,7 @@ export const NPCS: NpcDef[] = [
     dialogue: [
       "Entre estos anillos flota media nave... la otra mitad está escondida quién sabe dónde.",
       "Tráeme las 3 piezas y demuéstrame que puedes con Nébula-9, y la reconstruyo encantada.",
+      "Cada planeta que reconstruyes te acerca más a la Estación... y a algo que ni yo entiendo del todo.",
     ],
     missionIds: ["m_nave_anillos"],
   },
@@ -788,6 +888,7 @@ export const NPCS: NpcDef[] = [
     dialogue: [
       "Más allá de la Luna de Cristal ya no hay planetas con aire. Solo vacío, óxido y estaciones abandonadas.",
       "Sin un traje espacial no sobrevivirás ni un segundo ahí fuera. Yo puedo craftearte uno... pero no es barato, y no hay vuelta atrás: donde vas a ir, se puede morir de verdad.",
+      "Más allá de todo eso hay un Sol que consume lo que sea que se le acerque. Y dicen que detrás del Sol hay otra realidad completa esperando. Nadie ha vuelto para confirmarlo.",
     ],
     missionIds: ["m_traje_espacial"],
   },
@@ -859,7 +960,8 @@ export const NPCS: NpcDef[] = [
     dialogue: [
       "Llevo aquí más tiempo del que puedo contar. El traje es lo único entre tú y la nada.",
       "El Custodio Corroído protege el núcleo de la estación. Ni él sabe ya por qué sigue luchando.",
-      "Ten cuidado ahí fuera, piloto. Aquí, un error de verdad te cuesta la vida.",
+      "Ten cuidado ahí fuera, piloto. Aquí, un error de verdad te cuesta la vida. Cada vez queda menos gente que se atreva a intentarlo.",
+      "Cuando termines aquí, solo queda un lugar más: el Sol. Ahí no hay guardianes con llaves. Ahí hay algo mucho más antiguo esperando.",
     ],
     missionIds: ["s_goles_estacion"],
   },
@@ -873,6 +975,61 @@ export const NPCS: NpcDef[] = [
     suited: true,
     dialogue: ["Monitorizo los niveles de oxígeno de todos los que entran. Los tuyos... están bien, por ahora.", "Entrena en el simulador si quieres afinar el pulso antes de enfrentarte a algo letal."],
     missionIds: ["s_partido_estacion"],
+  },
+
+  // ---------------- El Sol (espacio profundo, batalla final) ----------------
+  {
+    id: "mercader_cenizas",
+    name: "Mercader de Cenizas Solares",
+    stage: "sol",
+    pos: [-260, 700],
+    color: "#ffcf3d",
+    role: "tienda",
+    shopId: "shop_sol",
+    suited: true,
+    dialogue: ["Todo lo que vendo sobrevivió al calor. Como yo. Por ahora."],
+    missionIds: ["s_cofres_sol"],
+  },
+  {
+    id: "coleccionista_brasas",
+    name: "Coleccionista de Brasas",
+    stage: "sol",
+    pos: [260, 700],
+    color: "#ff8a3d",
+    role: "mascotas",
+    suited: true,
+    dialogue: ["Las criaturas que aguantan el calor del Sol no tienen precio. Pero te pagaré uno igualmente."],
+  },
+  {
+    id: "superviviente_llamas",
+    name: "Superviviente de las Llamas",
+    stage: "sol",
+    pos: [-500, 300],
+    color: "#ff9d2f",
+    role: "mision",
+    suited: true,
+    dialogue: [
+      "Escúchame bien, porque no lo voy a repetir: aquí fuera el calor no perdona. Corre a un refugio en cuanto la vida empiece a bajar.",
+      "Cada vez queda menos gente que se atreva a explorar. Los que se quedan aquí, se quedan para siempre.",
+      "Hay fragmentos escondidos en las cuatro esquinas del mundo. Léelos todos antes de tocar los pilares del altar, o perderás el tiempo.",
+    ],
+    missionIds: ["s_goles_sol"],
+  },
+  {
+    id: "ultima_voz",
+    name: "Última Voz",
+    stage: "sol",
+    pos: [0, -700],
+    color: "#fff2c2",
+    role: "historia",
+    suited: true,
+    dialogue: [
+      "Ya casi no queda nadie que llegue tan lejos, piloto. Yo me quedé para ver quién lo lograría.",
+      "El Sol no es un mundo más. Es la Brecha: la última puerta antes de lo desconocido. Heliarca la custodia desde antes de que yo naciera.",
+      "Lo que hay del otro lado, ni yo lo sé todavía. Nadie que haya cruzado ha vuelto a contarlo. Quizás tú seas el primero.",
+      "Resuelve el acertijo del altar, sobrevive a la batalla, y ábrete paso. La historia sigue... pero a partir de ahí, se escribe sola.",
+    ],
+    missionIds: ["s_partido_sol"],
   },
 ];
 

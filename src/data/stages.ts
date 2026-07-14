@@ -13,7 +13,8 @@ export type StageId =
   | "planeta_escarlata"
   | "planeta_anillos"
   | "planeta_cristal"
-  | "estacion_oxido";
+  | "estacion_oxido"
+  | "sol";
 
 export type PropType = "arbol" | "cactus" | "roca" | "cristal" | "nieve" | "nube" | "tuberia" | "farola";
 
@@ -39,6 +40,9 @@ export interface StageDef {
   // traje espacial: la muerte es posible y las llaves se consiguen con
   // desafíos de parkour en vez de partidos.
   deepSpace?: boolean;
+  // El Sol no tiene guardianes: su puerta del jefe se abre resolviendo el
+  // acertijo de los pilares en vez de reunir 3 llaves.
+  riddleGate?: boolean;
 }
 
 const W = 2200;
@@ -267,6 +271,25 @@ export const STAGES: Record<StageId, StageDef> = {
     realm: "solar",
     deepSpace: true,
   },
+  sol: {
+    id: "sol",
+    name: "El Sol",
+    description: "El corazón ardiente del sistema. Nadie ha vuelto de aquí para contarlo... todavía.",
+    order: 13,
+    width: PW,
+    height: PH,
+    groundColor: "#4a1400",
+    groundColorAlt: "#5c1a00",
+    accentColor: "#ffcf3d",
+    skyColor: "#3a1000",
+    propType: "roca",
+    propColor: "#ff5500",
+    bossName: "Heliarca",
+    bossTitle: "Guardián de la Brecha",
+    realm: "solar",
+    deepSpace: true,
+    riddleGate: true,
+  },
 };
 
 export const STAGE_ORDER: StageId[] = [
@@ -287,7 +310,7 @@ export const PLANET_ORDER: StageId[] = ["planeta_escarlata", "planeta_anillos", 
 // en la Luna de Cristal. A diferencia de los planetas (que necesitan una nave
 // reconstruida a mano), aquí basta con derrotar al jefe para abrir el
 // siguiente, igual que en las 8 etapas originales.
-export const STATION_ORDER: StageId[] = ["estacion_oxido"];
+export const STATION_ORDER: StageId[] = ["estacion_oxido", "sol"];
 
 export function nextStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);

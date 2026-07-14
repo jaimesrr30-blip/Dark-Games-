@@ -95,6 +95,12 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "gol_alarma_roja",
     "estela_vacio",
   ],
+  shop_sol: [
+    "color_ceniza_solar",
+    "rueda_eclipse",
+    "gol_brecha_dimensional",
+    "estela_solar",
+  ],
 };
 
 export function shopCatalog(shopId: string): string[] {

@@ -23,6 +23,9 @@ export interface NpcDef {
   dialogue: string[];
   missionIds?: string[];
   guardian?: GuardianInfo;
+  // Los NPCs de los mundos de espacio profundo (donde se puede morir) llevan
+  // traje espacial: se dibujan con un casco/burbuja translúcida encima.
+  suited?: boolean;
 }
 
 function guardian(keyId: string, priceCoins: number, difficulty: number, flavor?: Partial<GuardianInfo>): GuardianInfo {
@@ -774,6 +777,102 @@ export const NPCS: NpcDef[] = [
       "Derrota a Prisma Eterna y tráeme las 3 piezas escondidas. Será la última nave que reconstruya... por ahora.",
     ],
     missionIds: ["m_nave_cristal"],
+  },
+  {
+    id: "ingeniera_trajes",
+    name: "Ingeniera Orbital Kess",
+    stage: "planeta_cristal",
+    pos: [260, -280],
+    color: "#e8f4ff",
+    role: "historia",
+    dialogue: [
+      "Más allá de la Luna de Cristal ya no hay planetas con aire. Solo vacío, óxido y estaciones abandonadas.",
+      "Sin un traje espacial no sobrevivirás ni un segundo ahí fuera. Yo puedo craftearte uno... pero no es barato, y no hay vuelta atrás: donde vas a ir, se puede morir de verdad.",
+    ],
+    missionIds: ["m_traje_espacial"],
+  },
+
+  // ---------------- Estación Óxido (espacio profundo) ----------------
+  {
+    id: "centinela_colapso",
+    name: "Centinela del Colapso",
+    stage: "estacion_oxido",
+    pos: [950, -750],
+    color: "#c9701f",
+    role: "guardian",
+    suited: true,
+    dialogue: ["Antes de mi puesto había un puente. Ya no queda nada firme en esta estación.", "Cruza las plataformas si quieres mi llave. Si caes, caes."],
+    guardian: guardian("key_estacion_oxido_1", 0, 1.2),
+  },
+  {
+    id: "tecnico_esclusa",
+    name: "Técnico de Esclusa",
+    stage: "estacion_oxido",
+    pos: [-1000, 800],
+    color: "#8fa8b8",
+    role: "guardian",
+    suited: true,
+    dialogue: ["Cinco compuertas separan este pasillo del vacío exterior. Llevan siglos abriéndose y cerrándose solas.", "Encuentra el ritmo o te quedas sin aire para siempre."],
+    guardian: guardian("key_estacion_oxido_2", 0, 1.22),
+  },
+  {
+    id: "vigia_laser",
+    name: "Vigía de los Láseres",
+    stage: "estacion_oxido",
+    pos: [0, -1150],
+    color: "#ff6b5a",
+    role: "guardian",
+    suited: true,
+    dialogue: ["El sistema de seguridad nunca se apagó. Ni siquiera cuando todos los demás murieron.", "Encuentra el hueco entre los haces. Es la única llave que no se compra."],
+    guardian: guardian("key_estacion_oxido_3", 0, 1.24),
+  },
+  {
+    id: "mercader_oxido",
+    name: "Mercader del Óxido",
+    stage: "estacion_oxido",
+    pos: [-260, 200],
+    color: "#d98f4a",
+    role: "tienda",
+    shopId: "shop_estacion_oxido",
+    suited: true,
+    dialogue: ["Todo lo que vendo lo recuperé de estaciones muertas como esta. Funciona. Casi todo."],
+    missionIds: ["s_cofres_estacion"],
+  },
+  {
+    id: "cazarrecompensas_chatarra",
+    name: "Cazarrecompensas de Chatarra",
+    stage: "estacion_oxido",
+    pos: [280, 240],
+    color: "#b8c4d0",
+    role: "mascotas",
+    suited: true,
+    dialogue: ["Las criaturas que sobreviven aquí fuera valen una fortuna. Muéstrame la tuya."],
+  },
+  {
+    id: "superviviente_oxido",
+    name: "Superviviente del Óxido",
+    stage: "estacion_oxido",
+    pos: [0, -340],
+    color: "#e8f4ff",
+    role: "historia",
+    suited: true,
+    dialogue: [
+      "Llevo aquí más tiempo del que puedo contar. El traje es lo único entre tú y la nada.",
+      "El Custodio Corroído protege el núcleo de la estación. Ni él sabe ya por qué sigue luchando.",
+      "Ten cuidado ahí fuera, piloto. Aquí, un error de verdad te cuesta la vida.",
+    ],
+    missionIds: ["s_goles_estacion"],
+  },
+  {
+    id: "tecnica_soporte",
+    name: "Técnica de Soporte Vital",
+    stage: "estacion_oxido",
+    pos: [400, -100],
+    color: "#7bd6c9",
+    role: "mision",
+    suited: true,
+    dialogue: ["Monitorizo los niveles de oxígeno de todos los que entran. Los tuyos... están bien, por ahora.", "Entrena en el simulador si quieres afinar el pulso antes de enfrentarte a algo letal."],
+    missionIds: ["s_partido_estacion"],
   },
 ];
 

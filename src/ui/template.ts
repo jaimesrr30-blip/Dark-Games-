@@ -32,6 +32,10 @@ export const UI_TEMPLATE = `
     <div id="level-row"><span id="hud-level">Nivel 1</span><span id="hud-xp-label">0 / 100 XP</span></div>
     <div id="xp-bar-track"><div id="xp-bar-fill"></div></div>
   </div>
+  <div id="health-panel" class="panel hidden">
+    <div id="health-row"><span>❤ Soporte Vital</span><span id="hud-health-label">100 / 100</span></div>
+    <div id="health-bar-track"><div id="health-bar-fill"></div></div>
+  </div>
   <div id="hud-menu-buttons">
     <button class="btn-arrow small interactive" id="btn-open-map">Mapa</button>
     <button class="btn-arrow small interactive" id="btn-open-missions">Misiones</button>
@@ -124,6 +128,41 @@ export const UI_TEMPLATE = `
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button class="btn-arrow gold interactive" id="btn-fuel-buy"><span id="fuel-buy-label">Comprar</span> <span class="arrow-icon">➤</span></button>
         <button class="btn-arrow interactive" id="btn-fuel-leave">Ahora no <span class="arrow-icon">➤</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Traje espacial -->
+<div class="modal-backdrop interactive" id="modal-suit">
+  <div class="modal-window panel" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">Traje Espacial</div>
+      <button class="modal-close interactive" data-close="modal-suit">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="suit-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:18px;"></p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-arrow gold interactive" id="btn-suit-craft"><span id="suit-craft-label">Craftear traje</span> <span class="arrow-icon">➤</span></button>
+        <button class="btn-arrow interactive" id="btn-suit-leave">Ahora no</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Desafío de parkour -->
+<div class="modal-backdrop interactive" id="modal-parkour">
+  <div class="modal-window panel" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="parkour-title">Desafío</div>
+      <button class="modal-close interactive" data-close="modal-parkour">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="parkour-text" style="color:var(--text-dim);line-height:1.5;margin-bottom:8px;"></p>
+      <p id="parkour-warn" style="color:#ff6b5a;font-weight:700;line-height:1.5;margin-bottom:18px;"></p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-arrow gold interactive" id="btn-parkour-start">Entrar (puedes morir) <span class="arrow-icon">➤</span></button>
+        <button class="btn-arrow interactive" id="btn-parkour-leave">Ahora no</button>
       </div>
     </div>
   </div>

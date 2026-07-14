@@ -8,13 +8,14 @@ import { visualFromState } from "./entities/carVisual";
 import { Npc2DInstance } from "./entities/Npc2D";
 import { NPCS, type NpcDef } from "./data/npcs";
 import { MISSIONS } from "./data/missions";
-import { STAGES, STAGE_ORDER, PLANET_ORDER, nextPlanet, type StageId } from "./data/stages";
+import { STAGES, STAGE_ORDER, PLANET_ORDER, STATION_ORDER, nextPlanet, solarDestinations, type StageId } from "./data/stages";
 import { Stage2D } from "./stage/Stage2D";
 import { buildInteractables2D, type Interactable2D } from "./stage/Interactables2D";
 import { Match2D } from "./match2d/Match2D";
 import { Interior2D } from "./stage/Interior2D";
 import { HideoutInterior2D } from "./stage/HideoutInterior2D";
 import { ZoneInterior2D } from "./stage/ZoneInterior2D";
+import { ParkourArena2D } from "./stage/ParkourArena2D";
 import {
   PYRAMID_BUTTONS,
   SECRET_DOORS,
@@ -26,6 +27,7 @@ import {
   type HideoutSpawn,
 } from "./data/spawns";
 import { ZONE_QUESTS, zoneQuestsForStage, zoneQuestForGuardian, type ZoneQuest, type ZoneUnlockKind } from "./data/zoneQuests";
+import { parkourForGuardian, type ParkourChallenge } from "./data/parkour";
 import { petSellPrice } from "./data/pets";
 import { hashString } from "./utils/random";
 
@@ -47,11 +49,48 @@ let interior: Interior2D | null = null;
 let hideoutInterior: HideoutInterior2D | null = null;
 let zoneInterior: ZoneInterior2D | null = null;
 let zoneInteriorNpc: Npc2DInstance | null = null;
-let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" | "zoneinterior" = "world";
+let parkour: ParkourArena2D | null = null;
+let pendingParkourGuardian: NpcDef | null = null;
+let mode: "world" | "match" | "interior" | "ceremony" | "hideout" | "launch" | "solarmap" | "travel" | "zoneinterior" | "parkour" = "world";
 let pendingGuardian: NpcDef | null = null;
 let pendingHideout: HideoutSpawn | null = null;
 let matchEnding = false;
 let portalFxT = 0;
+
+// ---------------- Salud / muerte (solo en el espacio profundo) ----------------
+const MAX_HEALTH = 100;
+let playerHealth = MAX_HEALTH;
+
+function isDangerStage(id: StageId): boolean {
+  return (STATION_ORDER as StageId[]).includes(id);
+}
+
+function damagePlayer(amount: number) {
+  if (playerHealth <= 0) return;
+  playerHealth = Math.max(0, playerHealth - amount);
+  ui.updateHealth(playerHealth, MAX_HEALTH);
+  if (playerHealth <= 0) killPlayer();
+}
+
+function killPlayer() {
+  if (mode === "solarmap") return;
+  ui.hideMatchHUD();
+  match = null;
+  matchEnding = false;
+  pendingGuardian = null;
+  pendingHideout = null;
+  parkour = null;
+  pendingParkourGuardian = null;
+  playerHealth = MAX_HEALTH;
+  ui.updateHealth(playerHealth, MAX_HEALTH);
+  ui.toast("Has muerto... no pierdes nada salvo el intento. Reapareces en el Sistema Solar.", "raro");
+  solarMapReturnPos = [stage.spawnPoint[0], stage.spawnPoint[1]];
+  solarMapT = 0;
+  mode = "solarmap";
+  ui.showWorldMenus();
+  ui.setInteractPrompt(null);
+  ui.setHealthVisible(false);
+}
 
 interface KeyCeremony {
   t: number;
@@ -117,6 +156,10 @@ function loadStage(id: StageId, pos?: [number, number] | null) {
   player.setPosition(spawn[0], spawn[1]);
   camera.snap(spawn[0], spawn[1]);
   gs.setPlayerLocation(id, spawn);
+
+  playerHealth = MAX_HEALTH;
+  ui.updateHealth(playerHealth, MAX_HEALTH);
+  ui.setHealthVisible(isDangerStage(id));
 }
 
 // ---------------- NPCs: diálogo, tienda, mascotas, guardianes ----------------
@@ -125,6 +168,10 @@ function talkToNpc(npc: Npc2DInstance) {
   const def = npc.def;
   if (def.id === "ingeniero_cohete") {
     talkToRocketEngineer(def);
+    return;
+  }
+  if (def.id === "ingeniera_trajes") {
+    talkToSpacesuitCrafter(def);
     return;
   }
   const mechanicPlanet = planetShipMechanics()[def.id];
@@ -179,6 +226,32 @@ function talkToRocketEngineer(def: NpcDef) {
   });
 }
 
+const SUIT_COST = 6000;
+
+function talkToSpacesuitCrafter(def: NpcDef) {
+  ui.openDialogue(def.name, def.dialogue, () => {
+    gs.notifyEvent("hablarCon", def.id, 1);
+    if (gs.data.hasSpacesuit) {
+      ui.toast("Ya llevas tu traje espacial puesto. Usa el Sistema Solar para viajar más allá.", "raro");
+      return;
+    }
+    if (!gs.isPlanetShipBuilt("planeta_cristal")) {
+      ui.toast("Antes necesitas tener la nave de la Luna de Cristal lista para volar.");
+      return;
+    }
+    ui.openSuitModal(def.name, SUIT_COST, () => {
+      if (gs.spend(SUIT_COST, "monedas")) {
+        gs.craftSpacesuit();
+        gs.unlockStage(STATION_ORDER[0]);
+        ui.toast("¡Traje espacial listo! A partir de ahora, tener cuidado importa de verdad.", "raro");
+        beginLaunch(`Rumbo a ${STAGES[STATION_ORDER[0]].name}`, () => enterSolarMap());
+      } else {
+        ui.toast("No tienes suficientes monedas para el traje espacial.");
+      }
+    });
+  });
+}
+
 function talkToGuardian(def: NpcDef) {
   const g = def.guardian!;
   if (gs.hasKey(g.keyId)) {
@@ -187,6 +260,11 @@ function talkToGuardian(def: NpcDef) {
   }
   if (def.id === "custodio_piramide") {
     ui.openDialogue(def.name, def.dialogue, () => talkToPyramidGuardian(def));
+    return;
+  }
+  const pk = parkourForGuardian(def.id);
+  if (pk) {
+    talkToParkourGuardian(def, pk);
     return;
   }
   const zone = zoneQuestForGuardian(def.id);
@@ -222,6 +300,33 @@ function talkToZoneGuardian(def: NpcDef, zone: ZoneQuest) {
       ui.toast(`Todavía no encontraste lo que pidió ${def.name}: ${zone.favorLabel.toLowerCase()}.`);
     }
   });
+}
+
+function talkToParkourGuardian(def: NpcDef, pk: ParkourChallenge) {
+  ui.openDialogue(def.name, [...def.dialogue, pk.introLine], () => {
+    ui.openParkourModal(pk.name, pk.introLine, pk.warnLine, () => enterParkour(pk, def));
+  });
+}
+
+function enterParkour(pk: ParkourChallenge, guardianDef: NpcDef) {
+  pendingParkourGuardian = guardianDef;
+  parkour = new ParkourArena2D(pk, pk.collectibleId ? gs.hasPuzzleItem(pk.collectibleId) : false);
+  player.setPosition(pk.spawnPos[0], pk.spawnPos[1]);
+  camera.snap(player.x, player.y);
+  mode = "parkour";
+  ui.hideWorldMenus();
+  ui.setInteractPrompt(null);
+}
+
+function exitParkourToWorld() {
+  if (!pendingParkourGuardian) return;
+  const guardianPos = pendingParkourGuardian.pos;
+  parkour = null;
+  pendingParkourGuardian = null;
+  mode = "world";
+  player.setPosition(guardianPos[0], guardianPos[1] + 70);
+  camera.snap(player.x, player.y);
+  ui.showWorldMenus();
 }
 
 function planetShipMechanics(): Record<string, StageId> {
@@ -326,7 +431,8 @@ function trainingSkillForStage(): number {
 
 function beginMatch(modeType: "normal" | "boss") {
   const skill = modeType === "boss" ? Math.min(1.2, 0.8 + STAGES[stage.def.id].order * 0.02) : trainingSkillForStage();
-  match = new Match2D(gs, input, modeType, stage.def.id, skill);
+  const lethal = modeType === "boss" && isDangerStage(stage.def.id);
+  match = new Match2D(gs, input, modeType, stage.def.id, skill, undefined, undefined, lethal, lethal ? damagePlayer : undefined);
   camera.snap(0, 0);
   mode = "match";
   ui.showMatchHUD();
@@ -479,6 +585,7 @@ function enterSolarMap() {
   mode = "solarmap";
   ui.hideWorldMenus();
   ui.setInteractPrompt(null);
+  ui.setHealthVisible(false);
 }
 
 function exitSolarMap() {
@@ -749,11 +856,16 @@ function loop(tsMs: number) {
     }
   } else if (mode === "match" && match) {
     match.update(dt);
-    camera.follow(match.player.x, match.player.y, { w: match.width, h: match.height }, 0.1);
-    ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.boostFuel, match.touchCount, match.turboBoostActive);
-    ui.renderMinimap(0, 0, stage, true);
-    match.draw(ctx, camera);
-    if (match.finished) endMatch();
+    // Un jefe letal puede matar al jugador a mitad de partido: eso ya cambia
+    // `mode` y anula `match` dentro de damagePlayer -> killPlayer(). Si pasó,
+    // no sigas usando el partido que ya no existe.
+    if (match) {
+      camera.follow(match.player.x, match.player.y, { w: match.width, h: match.height }, 0.1);
+      ui.updateMatchHUD(match.scoreA, match.scoreB, match.timeLeft, match.boostFuel, match.touchCount, match.turboBoostActive);
+      ui.renderMinimap(0, 0, stage, true);
+      match.draw(ctx, camera);
+      if (match.finished) endMatch();
+    }
   } else if (mode === "interior" && interior) {
     if (!ui.anyModalOpen()) {
       player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, interior.bounds);
@@ -828,6 +940,31 @@ function loop(tsMs: number) {
     }
     ui.setInteractPrompt(zLabel);
     if (zLabel && zAction && input.wasPressed("KeyE")) zAction();
+  } else if (mode === "parkour" && parkour) {
+    if (!ui.anyModalOpen()) {
+      player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, parkour.bounds);
+    }
+    parkour.update(dt, player.x, player.y);
+    camera.follow(player.x, player.y, { w: parkour.challenge.width, h: parkour.challenge.height }, 0.15);
+    parkour.draw(ctx, camera);
+    player.draw(ctx, camera, player.speed > 20);
+
+    if (parkour.collectibleTaken && parkour.challenge.collectibleId && !gs.hasPuzzleItem(parkour.challenge.collectibleId)) {
+      gs.collectPuzzleItem(parkour.challenge.collectibleId);
+      gs.addCurrency(parkour.challenge.collectibleReward ?? 0, 0);
+      ui.toast(`¡${parkour.challenge.collectibleLabel}! +${parkour.challenge.collectibleReward ?? 0} monedas.`, "raro");
+    }
+
+    if (parkour.status === "success") {
+      const guardian = pendingParkourGuardian;
+      const challenge = parkour.challenge;
+      if (guardian) gs.grantKey(challenge.keyId);
+      ui.toast(challenge.successLine, "raro");
+      exitParkourToWorld();
+    } else if (parkour.status === "dead") {
+      ui.toast(parkour.challenge.deathLine);
+      killPlayer();
+    }
   } else if (mode === "ceremony" && ceremony) {
     ceremony.t += dt;
     camera.follow(player.x, player.y, { w: stage.def.width, h: stage.def.height }, 0.2);
@@ -1309,22 +1446,25 @@ function drawSolarSystemView(dt: number) {
   ctx.arc(cx, cy, 34, 0, Math.PI * 2);
   ctx.fill();
 
-  const slots: [number, number][] = [
-    [cx - 260, cy + 190],
-    [cx, cy + 300],
-    [cx + 260, cy + 190],
-  ];
+  const destinations = solarDestinations();
+  const ringRadiusX = 260;
+  const ringRadiusY = 190;
+  const spacing = Math.min(260, 720 / Math.max(1, destinations.length - 1 || 1));
+  const slots: [number, number][] = destinations.map((_, i) => {
+    const off = i - (destinations.length - 1) / 2;
+    return [cx + off * spacing, cy + ringRadiusY + Math.abs(off) * 30];
+  });
 
   ctx.strokeStyle = "rgba(255,255,255,0.12)";
   ctx.lineWidth = 1.5;
   for (const [sxp, syp] of slots) {
     ctx.beginPath();
-    ctx.ellipse(cx, cy, Math.max(40, Math.abs(sxp - cx)), Math.max(40, Math.abs(syp - cy)), 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, Math.max(ringRadiusX, Math.abs(sxp - cx)), Math.max(40, Math.abs(syp - cy)), 0, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  for (let i = 0; i < PLANET_ORDER.length; i++) {
-    const id = PLANET_ORDER[i];
+  for (let i = 0; i < destinations.length; i++) {
+    const id = destinations[i];
     const def = STAGES[id];
     const [px, pyBase] = slots[i];
     const bob = Math.sin(solarMapT * 1.2 + i) * 6;
@@ -1398,11 +1538,11 @@ function drawSolarSystemView(dt: number) {
   ctx.fillText("A / D para elegir · E para viajar · ESC para volver", w / 2, h * 0.94);
 
   if (input.wasPressed("KeyA") || input.wasPressed("ArrowLeft")) solarMapSelected = Math.max(0, solarMapSelected - 1);
-  if (input.wasPressed("KeyD") || input.wasPressed("ArrowRight")) solarMapSelected = Math.min(PLANET_ORDER.length - 1, solarMapSelected + 1);
+  if (input.wasPressed("KeyD") || input.wasPressed("ArrowRight")) solarMapSelected = Math.min(destinations.length - 1, solarMapSelected + 1);
   if (input.wasPressed("KeyE")) {
-    const id = PLANET_ORDER[solarMapSelected];
+    const id = destinations[solarMapSelected];
     if (gs.isStageUnlocked(id)) beginPlanetTravel(id);
-    else ui.toast("Este planeta aún está bloqueado. Derrota al jefe del planeta anterior primero.");
+    else ui.toast("Este destino aún está bloqueado. Derrota al jefe anterior o consigue lo que haga falta para desbloquearlo.");
   }
   if (input.wasPressed("Escape")) exitSolarMap();
 }

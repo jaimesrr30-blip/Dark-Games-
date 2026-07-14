@@ -143,6 +143,14 @@ export const ITEMS: ItemDef[] = [
   { id: "gol_eco_cristal", slot: "explosionGol", name: "Eco de Cristal", rarity: "prohibido", price: 450, currency: "diamantes", colorHex: "#7bf2ff", colorHex2: "#c8fbff", description: "El campo entero resuena como si fuera de cristal." },
   { id: "estela_cristalina", slot: "estela", name: "Estela Cristalina", rarity: "secreto", price: 300, currency: "diamantes", colorHex: "#7bf2ff", description: "Fragmentos de cristal brillante flotan tras de ti." },
   { id: "bocina_resonante", slot: "bocina", name: "Bocina Resonante", rarity: "divino", price: 260, currency: "diamantes", description: "Un eco cristalino que se repite tres veces." },
+
+  // Objetos exclusivos de la Estación Óxido
+  { id: "color_oxido_estelar", slot: "color", name: "Óxido Estelar", rarity: "dios", price: 165, currency: "diamantes", colorHex: "#c9701f", colorHex2: "#3a2418", description: "El color de siglos a la deriva en el vacío." },
+  { id: "rueda_chatarra", slot: "rueda", name: "Borde de Chatarra", rarity: "secreto", price: 310, currency: "diamantes", colorHex: "#8a4a1f", description: "Piezas soldadas a mano, pero aguantan." },
+  { id: "gol_alarma_roja", slot: "explosionGol", name: "Alarma Roja", rarity: "legendario", price: 115, currency: "diamantes", colorHex: "#ff3b3b", colorHex2: "#8a4a1f", description: "Las luces de emergencia estallan al marcar." },
+  { id: "estela_vacio", slot: "estela", name: "Estela del Vacío", rarity: "divino", price: 270, currency: "diamantes", colorHex: "#1a0e08", description: "Absorbe el aire a tu paso, como el espacio exterior." },
+  { id: "turbo_oxidado", slot: "turbo", name: "Turbo Oxidado", rarity: "dios", price: 155, currency: "diamantes", colorHex: "#c9701f", description: "Suena a chatarra, pero empuja como un cohete." },
+  { id: "bocina_alarma_estacion", slot: "bocina", name: "Alarma de Estación", rarity: "raro", price: 800, currency: "monedas", description: "La misma alarma que sonó el día en que la estación murió." },
 ];
 
 export function itemsBySlot(slot: ItemSlot): ItemDef[] {

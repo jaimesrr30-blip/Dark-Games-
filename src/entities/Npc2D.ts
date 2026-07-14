@@ -39,6 +39,17 @@ export class Npc2DInstance {
     ctx.fillRect(-s * 0.2, -s * 0.08, 4, 6);
     ctx.fillRect(s * 0.2 - 4, -s * 0.08, 4, 6);
 
+    // traje espacial: burbuja de casco translúcida sobre el cubo
+    if (this.def.suited) {
+      ctx.strokeStyle = "rgba(232,244,255,0.85)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, -s * 0.05, s * 0.66, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(200,230,255,0.14)";
+      ctx.fill();
+    }
+
     ctx.restore();
 
     // nombre

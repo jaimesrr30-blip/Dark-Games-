@@ -40,6 +40,7 @@ export interface SaveData {
   zonesUnlocked: Record<string, boolean>;
   planetShipsBuilt: Record<string, boolean>;
   stellarFuel: number;
+  hasSpacesuit: boolean;
   goalsScored: number;
   matchesWon: number;
   currentStage: StageId;
@@ -84,6 +85,7 @@ function defaultSave(): SaveData {
     zonesUnlocked: {},
     planetShipsBuilt: {},
     stellarFuel: 0,
+    hasSpacesuit: false,
     goalsScored: 0,
     matchesWon: 0,
     currentStage: "hub",
@@ -389,6 +391,15 @@ export class GameState {
   spendFuel(amount: number): boolean {
     if (this.data.stellarFuel < amount) return false;
     this.data.stellarFuel -= amount;
+    this.save();
+    this.emit();
+    return true;
+  }
+
+  // ---------- Traje espacial (desbloquea el espacio profundo) ----------
+  craftSpacesuit(): boolean {
+    if (this.data.hasSpacesuit) return false;
+    this.data.hasSpacesuit = true;
     this.save();
     this.emit();
     return true;

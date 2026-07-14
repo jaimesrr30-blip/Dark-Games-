@@ -151,14 +151,40 @@ npm run preview
 - Guardado de partida automático en `localStorage` (botón "Continuar"),
   incluida la etapa y posición donde te quedaste.
 
+- **Espacio profundo: ahora se puede morir**. Tras derrotar a Prisma Eterna y
+  reconstruir la nave en la Luna de Cristal, la Ingeniera Orbital Kess
+  craftea (por un buen precio) un traje espacial. A partir de ahí se
+  desbloquea la **Estación Óxido**, un nuevo destino en el Sistema Solar
+  donde, por primera vez, el jugador puede morir de verdad.
+  - Todos los NPCs de la estación llevan un casco/burbuja de traje espacial
+    dibujado sobre el cubo.
+  - Sus 3 llaves de guardián ya no se consiguen jugando partidos: cada una
+    exige sobrevivir a un **desafío de parkour letal** distinto —
+    plataformas que colapsan 2 segundos después de pisarlas (con un
+    coleccionable extra escondido en el camino), compuertas de vacío
+    sincronizadas que aplastan si se cierran encima, y una sala de láseres
+    rotatorios donde un solo roce mata. Morir en un desafío no hace perder
+    nada salvo el intento: reaparece en la vista del Sistema Solar.
+  - Su jefe, el **Custodio Corroído**, también puede matar: telegrafía un
+    ataque de área (un anillo que crece) antes de golpear, así que es
+    evitable moviéndose a tiempo. Una barra de "Soporte Vital" aparece en el
+    HUD solo dentro de este contenido nuevo; el resto del juego (las 8
+    etapas originales y los 3 primeros planetas) no tiene riesgo de muerte.
+  - La estación tiene su propio comerciante, comprador de mascotas, cofres,
+    mascotas, puerta secreta, guarida y varias misiones secundarias, igual
+    de completa que cualquier otro mundo.
+
 ## Limitaciones conocidas / lo que NO incluye
 
 - **Música**: no se incluye música con derechos de autor. Se puede añadir
   después con archivos de audio propios.
 - **Partidos**: son 1 contra 1, con física arcade simplificada (sin
   colisiones de coche-coche perfectamente realistas).
-- El Sistema Solar tiene 3 planetas por ahora; añadir más sigue el mismo
-  patrón de datos que los 3 actuales (etapa + NPCs + spawns + misiones).
+- El Sistema Solar tiene 3 planetas y 1 mundo de espacio profundo (Estación
+  Óxido) por ahora; añadir más sigue el mismo patrón de datos. Están
+  pendientes 2 mundos más de espacio profundo y "el Sol" con su mecánica de
+  calor/refugios y la mega batalla final, tal y como se planteó para esta
+  fase.
 - La mecánica "resonancia" de la Luna de Cristal usa un único cristal por
   guardián (no una secuencia de orden en un altar compartido); mantiene la
   exploración y el desbloqueo del domo, pero simplifica el puzzle de orden.

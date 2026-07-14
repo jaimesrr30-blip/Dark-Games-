@@ -98,6 +98,12 @@ export class Match2D {
   private fxPopups: FxPopup[] = [];
   private tileColorA: string;
   private tileColorB: string;
+  private attackNextIn = 0;
+  private attackCharging = false;
+  private attackChargeT = 0;
+  private attackStrikeFxT = 0;
+  private static readonly ATTACK_CHARGE_TIME = 1.1;
+  private static readonly ATTACK_STRIKE_RADIUS = 260;
 
   skill: number;
 
@@ -108,7 +114,9 @@ export class Match2D {
     public stage?: StageId,
     skill?: number,
     opponentColor?: string,
-    fieldStage?: StageId
+    fieldStage?: StageId,
+    public lethal = false,
+    private onPlayerDamage?: (amount: number) => void
   ) {
     if (mode === "boss" && stage) {
       this.width = 2000;
@@ -154,6 +162,8 @@ export class Match2D {
       const arche = PET_ARCHETYPES.find((a) => a.id === activePet.archetypeId);
       if (arche) this.activePetBadge = { name: arche.name, power: POWER_LABELS[arche.id] ?? arche.power };
     }
+
+    if (this.lethal) this.attackNextIn = 2.4 + Math.random() * 1.4;
   }
 
   private generateCoins(stage: StageId): Coin[] {
@@ -245,6 +255,9 @@ export class Match2D {
       }
     }
 
+    if (this.attackStrikeFxT > 0) this.attackStrikeFxT = Math.max(0, this.attackStrikeFxT - dt);
+    if (this.lethal && this.mode === "boss") this.updateLethalAttack(dt);
+
     this.checkGoal(bounds);
   }
 
@@ -279,6 +292,30 @@ export class Match2D {
     const boostRange = 220 + this.skill * 120;
     const boost = dist < boostRange && Math.random() < 0.012 + this.skill * 0.1;
     return { x: dx / len, y: dy / len, boost };
+  }
+
+  // El jefe letal telegrafía un ataque (anillo que crece) y golpea si el
+  // jugador sigue dentro del radio al terminar la carga: evitable moviéndote.
+  private updateLethalAttack(dt: number) {
+    if (!this.attackCharging) {
+      this.attackNextIn -= dt;
+      if (this.attackNextIn <= 0) {
+        this.attackCharging = true;
+        this.attackChargeT = 0;
+      }
+      return;
+    }
+    this.attackChargeT += dt;
+    if (this.attackChargeT >= Match2D.ATTACK_CHARGE_TIME) {
+      this.attackCharging = false;
+      const d = Math.hypot(this.player.x - this.opponent.x, this.player.y - this.opponent.y);
+      if (d < Match2D.ATTACK_STRIKE_RADIUS) {
+        this.onPlayerDamage?.(16 + this.skill * 10);
+        this.pushPopup(this.player.x, this.player.y - 30, "¡IMPACTO!", "#ff3b3b");
+      }
+      this.attackStrikeFxT = 0.4;
+      this.attackNextIn = 3.2 + Math.random() * 1.8 - this.skill * 0.6;
+    }
   }
 
   private resolveCarWalls(car: CarBody2D) {
@@ -495,7 +532,32 @@ export class Match2D {
 
     if (this.fx.magnet > 0) this.drawMagnetAura(ctx, camera);
     if (this.goalFxT > 0) this.drawGoalExplosion(ctx, camera);
+    if (this.lethal && (this.attackCharging || this.attackStrikeFxT > 0)) this.drawLethalAttackFx(ctx, camera);
     this.drawFxPopups(ctx, camera);
+  }
+
+  private drawLethalAttackFx(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    const [sx, sy] = camera.worldToScreen(this.opponent.x, this.opponent.y);
+    ctx.save();
+    if (this.attackCharging) {
+      const p = Math.min(1, this.attackChargeT / Match2D.ATTACK_CHARGE_TIME);
+      ctx.strokeStyle = "#ff3b3b";
+      ctx.globalAlpha = 0.35 + p * 0.5;
+      ctx.lineWidth = 4;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.arc(sx, sy, Match2D.ATTACK_STRIKE_RADIUS * p, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (this.attackStrikeFxT > 0) {
+      const p = 1 - this.attackStrikeFxT / 0.4;
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.fillStyle = "rgba(255,59,59,0.35)";
+      ctx.beginPath();
+      ctx.arc(sx, sy, Match2D.ATTACK_STRIKE_RADIUS * (0.7 + p * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   private drawMagnetAura(ctx: CanvasRenderingContext2D, camera: Camera2D) {

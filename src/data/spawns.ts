@@ -53,6 +53,10 @@ export const CHESTS: ChestSpawn[] = [
   { id: "chest_cristal_1", stage: "planeta_cristal", pos: [460, 380], minRarity: "dios" },
   { id: "chest_cristal_2", stage: "planeta_cristal", pos: [-480, -400], minRarity: "divino" },
   { id: "chest_cristal_3", stage: "planeta_cristal", pos: [850, 920], minRarity: "prohibido" },
+
+  { id: "chest_estacion_1", stage: "estacion_oxido", pos: [520, 420], minRarity: "legendario" },
+  { id: "chest_estacion_2", stage: "estacion_oxido", pos: [-560, -380], minRarity: "dios" },
+  { id: "chest_estacion_3", stage: "estacion_oxido", pos: [900, -980], minRarity: "secreto" },
 ];
 
 export const PET_SPAWNS: PetSpawnPoint[] = [
@@ -74,6 +78,9 @@ export const PET_SPAWNS: PetSpawnPoint[] = [
   { id: "pet_anillos_2", stage: "planeta_anillos", pos: [-620, -180] },
   { id: "pet_cristal_1", stage: "planeta_cristal", pos: [-340, 500] },
   { id: "pet_cristal_2", stage: "planeta_cristal", pos: [600, -220] },
+
+  { id: "pet_estacion_1", stage: "estacion_oxido", pos: [-340, 520] },
+  { id: "pet_estacion_2", stage: "estacion_oxido", pos: [640, -240] },
 ];
 
 export interface PuzzleButtonSpawn {
@@ -150,6 +157,8 @@ export const SECRET_DOORS: SecretDoorSpawn[] = [
   { id: "secreto_escarlata", stage: "planeta_escarlata", pos: [-1200, -950], chestMinRarity: "secreto", rewardItemId: "turbo_marciano", coins: 1800 },
   { id: "secreto_anillos", stage: "planeta_anillos", pos: [1200, -950], chestMinRarity: "divino", rewardItemId: "balon_nebula", coins: 2000 },
   { id: "secreto_cristal", stage: "planeta_cristal", pos: [-1250, -980], chestMinRarity: "prohibido", rewardItemId: "estela_cristalina", coins: 2200 },
+
+  { id: "secreto_estacion", stage: "estacion_oxido", pos: [-1300, -1020], chestMinRarity: "divino", rewardItemId: "turbo_oxidado", coins: 2400 },
 ];
 
 export interface HideoutSpawn {
@@ -179,6 +188,8 @@ export const HIDEOUTS: HideoutSpawn[] = [
   { id: "guarida_escarlata", stage: "planeta_escarlata", pos: [1200, 950], enemyName: "Renegado del Cañón", enemyColor: "#b33a1a", difficulty: 1.0, rewardCoins: 1300, rewardItemId: "gol_impacto_meteorito" },
   { id: "guarida_anillos", stage: "planeta_anillos", pos: [-1200, 950], enemyName: "Pirata de Kaion", enemyColor: "#9a6fd9", difficulty: 1.05, rewardCoins: 1450, rewardItemId: "antena_anillo" },
   { id: "guarida_cristal", stage: "planeta_cristal", pos: [1250, 980], enemyName: "Fragmento Corrupto", enemyColor: "#3fb8c9", difficulty: 1.1, rewardCoins: 1600, rewardItemId: "bocina_resonante" },
+
+  { id: "guarida_estacion", stage: "estacion_oxido", pos: [1300, 1020], enemyName: "Saqueador Corroído", enemyColor: "#8a4a1f", difficulty: 1.15, rewardCoins: 1800, rewardItemId: "bocina_alarma_estacion" },
 ];
 
 // Punto de entrada al jugar la etapa (siempre cerca del borde inferior).

@@ -33,6 +33,9 @@ const LANDMARKS: Landmark[] = [
   { stage: "planeta_anillos", pos: [920, 580], type: "choza" },
   { stage: "planeta_cristal", pos: [-320, 240], type: "choza" },
   { stage: "planeta_cristal", pos: [870, -720], type: "choza" },
+
+  { stage: "estacion_oxido", pos: [-340, 240], type: "choza" },
+  { stage: "estacion_oxido", pos: [880, -720], type: "choza" },
 ];
 
 function buildProps(stage: StageDef): Prop[] {

@@ -740,6 +740,52 @@ export class UIManager {
     };
   }
 
+  // ---------- Traje espacial ----------
+  openSuitModal(npcName: string, cost: number, onCraft: () => void) {
+    qs("#modal-suit").classList.add("show");
+    qs("#suit-text").textContent =
+      `${npcName}: "Un traje espacial completo, sellado y probado, cuesta ${cost} monedas. Una vez te lo pongas, no hay marcha atrás: donde vas a ir, se puede morir de verdad. Nada se pierde si mueres... salvo el intento."`;
+    const canAfford = this.gs.canAfford(cost, "monedas");
+    const craftBtn = qs<HTMLButtonElement>("#btn-suit-craft");
+    craftBtn.disabled = !canAfford;
+    qs("#suit-craft-label").textContent = canAfford ? `Craftear traje por ${cost} monedas` : `Te faltan monedas (${cost} necesarias)`;
+    craftBtn.onclick = () => {
+      qs("#modal-suit").classList.remove("show");
+      onCraft();
+    };
+    qs<HTMLButtonElement>("#btn-suit-leave").onclick = () => {
+      qs("#modal-suit").classList.remove("show");
+    };
+  }
+
+  // ---------- Desafío de parkour letal ----------
+  openParkourModal(name: string, introLine: string, warnLine: string, onStart: () => void) {
+    qs("#modal-parkour").classList.add("show");
+    qs("#parkour-title").textContent = name;
+    qs("#parkour-text").textContent = introLine;
+    qs("#parkour-warn").textContent = warnLine;
+    qs<HTMLButtonElement>("#btn-parkour-start").onclick = () => {
+      qs("#modal-parkour").classList.remove("show");
+      onStart();
+    };
+    qs<HTMLButtonElement>("#btn-parkour-leave").onclick = () => {
+      qs("#modal-parkour").classList.remove("show");
+    };
+  }
+
+  // ---------- Salud (solo en el espacio profundo) ----------
+  setHealthVisible(visible: boolean) {
+    qs("#health-panel").classList.toggle("hidden", !visible);
+  }
+
+  updateHealth(hp: number, max: number) {
+    const pct = Math.max(0, Math.min(100, (hp / max) * 100));
+    qs("#hud-health-label").textContent = `${Math.max(0, Math.round(hp))} / ${max}`;
+    const fill = qs<HTMLElement>("#health-bar-fill");
+    fill.style.width = `${pct}%`;
+    fill.style.background = pct < 30 ? "#ff3b3b" : pct < 60 ? "#ff9d2f" : "#4caf50";
+  }
+
   // ---------- Venta de mascotas ----------
   openPetSellModal(npcName: string, onSell: (uid: string) => void) {
     qs("#modal-sellpet").classList.add("show");

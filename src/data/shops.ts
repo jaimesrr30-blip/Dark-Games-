@@ -89,6 +89,12 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "estela_cristalina",
     "bocina_resonante",
   ],
+  shop_estacion_oxido: [
+    "color_oxido_estelar",
+    "rueda_chatarra",
+    "gol_alarma_roja",
+    "estela_vacio",
+  ],
 };
 
 export function shopCatalog(shopId: string): string[] {

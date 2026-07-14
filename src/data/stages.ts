@@ -12,7 +12,8 @@ export type StageId =
   | "celestial"
   | "planeta_escarlata"
   | "planeta_anillos"
-  | "planeta_cristal";
+  | "planeta_cristal"
+  | "estacion_oxido";
 
 export type PropType = "arbol" | "cactus" | "roca" | "cristal" | "nieve" | "nube" | "tuberia" | "farola";
 
@@ -34,6 +35,10 @@ export interface StageDef {
   // Los planetas viven en el "Sistema Solar" (se viaja a ellos con el cohete,
   // no por el Mapa de Etapas normal) en vez del mundo con base en tierra.
   realm?: "solar";
+  // Los mundos de "espacio profundo" (más allá de los 3 planetas) requieren
+  // traje espacial: la muerte es posible y las llaves se consiguen con
+  // desafíos de parkour en vez de partidos.
+  deepSpace?: boolean;
 }
 
 const W = 2200;
@@ -42,6 +47,10 @@ const H = 1600;
 // terrestres para caber más misiones secundarias y construcciones.
 const PW = 3200;
 const PH = 2400;
+// Los mundos de espacio profundo (tras craftear el traje espacial) son aún
+// más grandes: más NPCs, más misiones, y ahora también desafíos de parkour.
+const DW = 3400;
+const DH = 2600;
 
 export const STAGES: Record<StageId, StageDef> = {
   hub: {
@@ -238,6 +247,26 @@ export const STAGES: Record<StageId, StageDef> = {
     bossName: "Prisma Eterna",
     bossTitle: "El Eco de Cristal",
   },
+
+  // ---------------- Espacio profundo (tras craftear el traje espacial) ----------------
+  estacion_oxido: {
+    id: "estacion_oxido",
+    name: "Estación Óxido",
+    description: "Una estación espacial abandonada, corroída por siglos a la deriva.",
+    order: 12,
+    width: DW,
+    height: DH,
+    groundColor: "#2a2420",
+    groundColorAlt: "#332a24",
+    accentColor: "#c9701f",
+    skyColor: "#0a0806",
+    propType: "tuberia",
+    propColor: "#8a4a1f",
+    bossName: "Custodio Corroído",
+    bossTitle: "El Último Sistema",
+    realm: "solar",
+    deepSpace: true,
+  },
 };
 
 export const STAGE_ORDER: StageId[] = [
@@ -253,6 +282,12 @@ export const STAGE_ORDER: StageId[] = [
 ];
 
 export const PLANET_ORDER: StageId[] = ["planeta_escarlata", "planeta_anillos", "planeta_cristal"];
+
+// Mundos de espacio profundo: solo accesibles tras craftear el traje espacial
+// en la Luna de Cristal. A diferencia de los planetas (que necesitan una nave
+// reconstruida a mano), aquí basta con derrotar al jefe para abrir el
+// siguiente, igual que en las 8 etapas originales.
+export const STATION_ORDER: StageId[] = ["estacion_oxido"];
 
 export function nextStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);
@@ -272,8 +307,20 @@ export function nextPlanet(id: StageId): StageId | null {
   return PLANET_ORDER[idx + 1];
 }
 
+export function nextStation(id: StageId): StageId | null {
+  const idx = STATION_ORDER.indexOf(id);
+  if (idx < 0 || idx >= STATION_ORDER.length - 1) return null;
+  return STATION_ORDER[idx + 1];
+}
+
 // Progresión unificada: al derrotar un jefe se desbloquea lo siguiente, ya sea
-// la próxima etapa terrestre o el próximo planeta del sistema solar.
+// la próxima etapa terrestre, el próximo planeta del sistema solar, o el
+// próximo mundo de espacio profundo.
 export function nextInProgression(id: StageId): StageId | null {
-  return nextStage(id) ?? nextPlanet(id);
+  return nextStage(id) ?? nextPlanet(id) ?? nextStation(id);
+}
+
+// Todos los destinos visibles/viajables desde la vista del Sistema Solar.
+export function solarDestinations(): StageId[] {
+  return [...PLANET_ORDER, ...STATION_ORDER];
 }

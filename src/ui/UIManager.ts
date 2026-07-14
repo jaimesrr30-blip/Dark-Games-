@@ -558,14 +558,19 @@ export class UIManager {
     });
   }
 
-  // La pestaña "Equipo" muestra las llaves de guardianes (como antes, la
-  // pestaña "Llaves") además de todo lo que el jugador lleva encima ahora
-  // mismo y aún no ha entregado a nadie: piezas de nave, botones, objetos de
-  // favor de las zonas de guardián, fragmentos del Sol y objetos narrativos
-  // especiales. En cuanto se entregan/consumen, desaparecen de la lista.
+  // La pestaña "Equipo" muestra las llaves de guardianes que todavía sirven
+  // para algo (como antes, la pestaña "Llaves", pero solo de etapas cuyo
+  // jefe sigue sin caer: una vez derrotado, esas llaves ya se usaron y no
+  // tiene sentido seguir cargando con ellas) además de todo lo que el
+  // jugador lleva encima ahora mismo y aún no ha entregado a nadie: piezas
+  // de nave, botones, objetos de favor de las zonas de guardián, fragmentos
+  // del Sol y objetos narrativos especiales. En cuanto se entregan/consumen
+  // o se derrota al jefe correspondiente, desaparecen de la lista.
   private renderEquipoList() {
     const list = qs("#inventory-list");
-    const stagesWithGuardians = [...STAGE_ORDER.filter((id) => id !== "hub"), ...PLANET_ORDER, ...STATION_ORDER];
+    const stagesWithGuardians = [...STAGE_ORDER.filter((id) => id !== "hub"), ...PLANET_ORDER, ...STATION_ORDER].filter(
+      (id) => !this.gs.isBossDefeated(id)
+    );
     let html = "";
     for (const stageId of stagesWithGuardians) {
       const stageDef = STAGES[stageId];

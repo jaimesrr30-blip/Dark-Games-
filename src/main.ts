@@ -1070,11 +1070,18 @@ function loop(tsMs: number) {
   } else if (mode === "parkour" && parkour) {
     if (!ui.anyModalOpen()) {
       player.update(dt, { x: input.moveX, y: input.moveY, boost: input.boost }, parkour.bounds);
+      if (parkour.challenge.kind === "saltos" && input.isDown("Space")) {
+        const landing = parkour.tryJump(player.x, player.y);
+        if (landing) player.setPosition(landing[0], landing[1]);
+      }
     }
     parkour.update(dt, player.x, player.y);
     camera.follow(player.x, player.y, { w: parkour.challenge.width, h: parkour.challenge.height }, 0.15);
     parkour.draw(ctx, camera);
     player.draw(ctx, camera, player.speed > 20);
+    if (parkour.challenge.kind === "saltos" && !ui.anyModalOpen()) {
+      ui.setInteractPrompt("ESPACIO: saltar el hueco");
+    }
 
     if (parkour.collectibleTaken && parkour.challenge.collectibleId && !gs.hasPuzzleItem(parkour.challenge.collectibleId)) {
       gs.collectPuzzleItem(parkour.challenge.collectibleId);
@@ -1680,7 +1687,8 @@ function drawSolarSystemView(dt: number) {
   const destinations = solarDestinations();
   const ringRadiusX = 260;
   const ringRadiusY = 190;
-  const spacing = Math.min(260, 720 / Math.max(1, destinations.length - 1 || 1));
+  const spacing = Math.min(260, (camera.viewW - 220) / Math.max(1, destinations.length - 1 || 1));
+  const nameFontPx = destinations.length > 4 ? 12 : 14;
   const slots: [number, number][] = destinations.map((_, i) => {
     const off = i - (destinations.length - 1) / 2;
     return [cx + off * spacing, cy + ringRadiusY + Math.abs(off) * 30];
@@ -1727,7 +1735,7 @@ function drawSolarSystemView(dt: number) {
     ctx.restore();
 
     ctx.globalAlpha = 1;
-    ctx.font = "bold 14px 'Segoe UI', sans-serif";
+    ctx.font = `bold ${nameFontPx}px 'Segoe UI', sans-serif`;
     ctx.textAlign = "center";
     ctx.fillStyle = unlocked ? "#fff" : "#888";
     ctx.shadowColor = "rgba(0,0,0,0.8)";
@@ -1828,6 +1836,9 @@ function startGame() {
       player,
       stage: () => stage,
       match: () => match,
+      mode: () => mode,
+      parkour: () => parkour,
+      input,
       forceBoss: () => beginMatch("boss"),
       forceRocketReady: () => {
         for (const p of ROCKET_PARTS) gs.collectPuzzleItem(p.id);

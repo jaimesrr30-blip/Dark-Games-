@@ -173,6 +173,17 @@ npm run preview
   - La estación tiene su propio comerciante, comprador de mascotas, cofres,
     mascotas, puerta secreta, guarida y varias misiones secundarias, igual
     de completa que cualquier otro mundo.
+- **Cinturón de Asteroides Fracturado** y **Horizonte de un Agujero Negro**:
+  los 2 mundos de espacio profundo entre la Estación Óxido y El Sol, cada
+  uno accesible solo tras derrotar al jefe del anterior. Reutilizan el mismo
+  motor de parkour letal con un desafío nuevo — **saltos**: huecos que solo
+  se cruzan pulsando (o manteniendo) ESPACIO justo antes del vacío; caminar
+  dentro del hueco sin saltar es una caída mortal. Cada mundo combina 3 de
+  los 4 tipos de peligro (plataformas/compuertas/láseres/saltos) con su
+  propio reskin visual, jefe letal propio, NPCs con traje espacial, tienda,
+  comprador de mascotas y misiones secundarias. El Agujero Negro es
+  deliberadamente más duro: láseres más rápidos, compuertas con ciclos más
+  cortos y pistas de salto más estrechas.
 
 - **El Sol: la batalla final (por ahora)**. Tras derrotar al Custodio
   Corroído en la Estación Óxido, se desbloquea El Sol. No tiene guardianes:
@@ -218,12 +229,10 @@ npm run preview
   después con archivos de audio propios.
 - **Partidos**: son 1 contra 1, con física arcade simplificada (sin
   colisiones de coche-coche perfectamente realistas).
-- El Sistema Solar tiene 3 planetas, 1 mundo de espacio profundo (Estación
-  Óxido) y ya El Sol como batalla final; añadir más sigue el mismo patrón de
-  datos. Por petición explícita, el Sol se construyó antes que los otros 2
-  mundos de espacio profundo planeados (un cinturón de asteroides y un
-  agujero negro): siguen pendientes y, cuando se añadan, probablemente haya
-  que revisar el orden de desbloqueo del Sol para que dependa de ellos.
+- El Sistema Solar tiene 3 planetas y 4 mundos de espacio profundo (Estación
+  Óxido, Cinturón de Asteroides Fracturado, Horizonte de un Agujero Negro y
+  El Sol, en ese orden de desbloqueo); añadir más sigue el mismo patrón de
+  datos.
 - El Reloj del Vacío está listo para que futuras dimensiones reaccionen a él
   (`gs.hasPuzzleItem("reloj_del_vacio")`), pero esa "próxima dimensión" en sí
   todavía no existe: el juego termina la partida actual en la escena de la

@@ -61,6 +61,14 @@ export const CHESTS: ChestSpawn[] = [
   { id: "chest_sol_1", stage: "sol", pos: [500, 250], minRarity: "dios" },
   { id: "chest_sol_2", stage: "sol", pos: [-500, -250], minRarity: "divino" },
   { id: "chest_sol_3", stage: "sol", pos: [0, -400], minRarity: "prohibido" },
+
+  { id: "chest_asteroides_1", stage: "cinturon_asteroides", pos: [520, 420], minRarity: "dios" },
+  { id: "chest_asteroides_2", stage: "cinturon_asteroides", pos: [-560, -380], minRarity: "divino" },
+  { id: "chest_asteroides_3", stage: "cinturon_asteroides", pos: [900, -980], minRarity: "prohibido" },
+
+  { id: "chest_agujero_1", stage: "agujero_negro", pos: [520, 420], minRarity: "divino" },
+  { id: "chest_agujero_2", stage: "agujero_negro", pos: [-560, -380], minRarity: "prohibido" },
+  { id: "chest_agujero_3", stage: "agujero_negro", pos: [900, -980], minRarity: "prohibido" },
 ];
 
 export const PET_SPAWNS: PetSpawnPoint[] = [
@@ -88,6 +96,12 @@ export const PET_SPAWNS: PetSpawnPoint[] = [
 
   { id: "pet_sol_1", stage: "sol", pos: [-300, 600] },
   { id: "pet_sol_2", stage: "sol", pos: [400, -600] },
+
+  { id: "pet_asteroides_1", stage: "cinturon_asteroides", pos: [-340, 520] },
+  { id: "pet_asteroides_2", stage: "cinturon_asteroides", pos: [640, -240] },
+
+  { id: "pet_agujero_1", stage: "agujero_negro", pos: [-340, 520] },
+  { id: "pet_agujero_2", stage: "agujero_negro", pos: [640, -240] },
 ];
 
 export interface PuzzleButtonSpawn {
@@ -187,6 +201,9 @@ export const SECRET_DOORS: SecretDoorSpawn[] = [
   { id: "secreto_cristal", stage: "planeta_cristal", pos: [-1250, -980], chestMinRarity: "prohibido", rewardItemId: "estela_cristalina", coins: 2200 },
 
   { id: "secreto_estacion", stage: "estacion_oxido", pos: [-1300, -1020], chestMinRarity: "divino", rewardItemId: "turbo_oxidado", coins: 2400 },
+
+  { id: "secreto_asteroides", stage: "cinturon_asteroides", pos: [-1300, -1020], chestMinRarity: "prohibido", rewardItemId: "turbo_asteroide", coins: 2800 },
+  { id: "secreto_agujero", stage: "agujero_negro", pos: [-1300, -1020], chestMinRarity: "prohibido", rewardItemId: "turbo_horizonte", coins: 3200 },
 ];
 
 export interface HideoutSpawn {
@@ -218,6 +235,9 @@ export const HIDEOUTS: HideoutSpawn[] = [
   { id: "guarida_cristal", stage: "planeta_cristal", pos: [1250, 980], enemyName: "Fragmento Corrupto", enemyColor: "#3fb8c9", difficulty: 1.1, rewardCoins: 1600, rewardItemId: "bocina_resonante" },
 
   { id: "guarida_estacion", stage: "estacion_oxido", pos: [1300, 1020], enemyName: "Saqueador Corroído", enemyColor: "#8a4a1f", difficulty: 1.15, rewardCoins: 1800, rewardItemId: "bocina_alarma_estacion" },
+
+  { id: "guarida_asteroides", stage: "cinturon_asteroides", pos: [1300, 1020], enemyName: "Saqueador de Rocas", enemyColor: "#6a7080", difficulty: 1.2, rewardCoins: 2000, rewardItemId: "bocina_alarma_asteroide" },
+  { id: "guarida_agujero", stage: "agujero_negro", pos: [1300, 1020], enemyName: "Eco Corrupto", enemyColor: "#3a1a5a", difficulty: 1.25, rewardCoins: 2400, rewardItemId: "bocina_singularidad" },
 ];
 
 // Punto de entrada al jugar la etapa (siempre cerca del borde inferior).

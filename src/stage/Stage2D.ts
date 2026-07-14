@@ -39,6 +39,12 @@ const LANDMARKS: Landmark[] = [
 
   { stage: "sol", pos: [-260, 600], type: "choza" },
   { stage: "sol", pos: [260, 600], type: "choza" },
+
+  { stage: "cinturon_asteroides", pos: [-340, 240], type: "choza" },
+  { stage: "cinturon_asteroides", pos: [880, -720], type: "choza" },
+
+  { stage: "agujero_negro", pos: [-340, 240], type: "choza" },
+  { stage: "agujero_negro", pos: [880, -720], type: "choza" },
 ];
 
 function buildProps(stage: StageDef): Prop[] {

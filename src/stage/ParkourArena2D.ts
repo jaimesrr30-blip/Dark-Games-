@@ -1,6 +1,6 @@
 import type { Camera2D } from "../core/Camera2D";
 import { roundRect } from "../entities/Car2D";
-import type { ParkourChallenge, VoidBand, GateHazard, LaserHazard } from "../data/parkour";
+import type { ParkourChallenge, VoidBand, GateHazard, LaserHazard, JumpGap } from "../data/parkour";
 
 export type ParkourStatus = "ongoing" | "dead" | "success";
 
@@ -23,6 +23,7 @@ export class ParkourArena2D {
   t = 0;
   collectibleTaken = false;
   private bandStates: BandState[] = [];
+  private jumpCooldown = 0;
 
   constructor(public challenge: ParkourChallenge, collectibleAlreadyOwned: boolean) {
     const hw = challenge.width / 2;
@@ -60,20 +61,50 @@ export class ParkourArena2D {
   }
 
   private onSolidGround(x: number, y: number): boolean {
-    if (this.challenge.kind !== "plataformas") return true;
-    if (this.inSafeZone(x, y)) return true;
-    for (const bs of this.bandStates) {
-      if (y > bs.band.minY && y < bs.band.maxY) {
-        if (!bs.collapsed && x > bs.band.platX0 && x < bs.band.platX1) return true;
-        return false;
+    if (this.challenge.kind === "plataformas") {
+      if (this.inSafeZone(x, y)) return true;
+      for (const bs of this.bandStates) {
+        if (y > bs.band.minY && y < bs.band.maxY) {
+          if (!bs.collapsed && x > bs.band.platX0 && x < bs.band.platX1) return true;
+          return false;
+        }
       }
+      return true;
+    }
+    if (this.challenge.kind === "saltos") {
+      if (this.inSafeZone(x, y)) return true;
+      for (const gap of this.challenge.jumps ?? []) {
+        if (y > gap.minY && y < gap.maxY) return false;
+      }
+      return true;
     }
     return true;
+  }
+
+  // Salta el hueco más cercano si el jugador está dentro de su pista de
+  // despegue. Devuelve la posición de aterrizaje si el salto es válido, o
+  // null si no hay ningún hueco a mano (no penaliza intentarlo de más). Se
+  // acepta tanto una pulsación como mantener pulsado (con un pequeño
+  // cooldown) para que no dependa de acertar un único frame exacto.
+  tryJump(playerX: number, playerY: number): [number, number] | null {
+    if (this.jumpCooldown > 0) return null;
+    for (const gap of this.challenge.jumps ?? []) {
+      // La pista de despegue vive JUSTO ANTES del vacío (lado del spawn,
+      // y mayor que gap.maxY), nunca dentro de él: pisar el vacío en sí
+      // (entre minY y maxY) ya es mortal por onSolidGround.
+      const inRunway = playerY >= gap.maxY && playerY <= gap.maxY + gap.runway;
+      if (inRunway) {
+        this.jumpCooldown = 0.5;
+        return [playerX, gap.landingY];
+      }
+    }
+    return null;
   }
 
   update(dt: number, playerX: number, playerY: number) {
     if (this.status !== "ongoing") return;
     this.t += dt;
+    if (this.jumpCooldown > 0) this.jumpCooldown = Math.max(0, this.jumpCooldown - dt);
 
     if (this.challenge.kind === "plataformas") {
       for (const bs of this.bandStates) {
@@ -109,6 +140,11 @@ export class ParkourArena2D {
           return;
         }
       }
+    } else if (this.challenge.kind === "saltos") {
+      if (!this.onSolidGround(playerX, playerY)) {
+        this.status = "dead";
+        return;
+      }
     }
 
     if (
@@ -126,14 +162,14 @@ export class ParkourArena2D {
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera2D) {
-    ctx.fillStyle = "#05040a";
+    ctx.fillStyle = this.challenge.bgColor ?? "#05040a";
     ctx.fillRect(0, 0, camera.viewW, camera.viewH);
 
     const [x0, y0] = camera.worldToScreen(this.bounds.minX, this.bounds.minY);
     const [x1, y1] = camera.worldToScreen(this.bounds.maxX, this.bounds.maxY);
-    ctx.fillStyle = "#14100c";
+    ctx.fillStyle = this.challenge.floorColor ?? "#14100c";
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    ctx.strokeStyle = "#c9701f";
+    ctx.strokeStyle = this.challenge.accentColor ?? "#c9701f";
     ctx.globalAlpha = 0.5;
     ctx.lineWidth = 10;
     ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
@@ -145,6 +181,7 @@ export class ParkourArena2D {
     if (this.challenge.kind === "plataformas") this.drawPlatforms(ctx, camera);
     else if (this.challenge.kind === "compuertas") this.drawGates(ctx, camera);
     else if (this.challenge.kind === "laseres") this.drawLasers(ctx, camera);
+    else if (this.challenge.kind === "saltos") this.drawJumps(ctx, camera);
 
     if (this.challenge.collectibleId && this.challenge.collectiblePos && !this.collectibleTaken) {
       const [sx, sy] = camera.worldToScreen(this.challenge.collectiblePos[0], this.challenge.collectiblePos[1]);
@@ -207,10 +244,10 @@ export class ParkourArena2D {
       const [px1, py1] = camera.worldToScreen(b.platX1, b.maxY);
       const standing = bs.steppedAt !== null;
       const warn = standing ? Math.min(1, (this.t - (bs.steppedAt ?? 0)) / b.collapseAfter) : 0;
-      ctx.fillStyle = warn > 0.5 ? `rgba(255,${Math.round(90 - warn * 60)},60,0.9)` : "#8a4a1f";
+      ctx.fillStyle = warn > 0.5 ? `rgba(255,${Math.round(90 - warn * 60)},60,0.9)` : this.challenge.accentColor ?? "#8a4a1f";
       roundRect(ctx, px0, py0, px1 - px0, py1 - py0, 6);
       ctx.fill();
-      ctx.strokeStyle = warn > 0.5 ? "#ff5a3d" : "#c9701f";
+      ctx.strokeStyle = warn > 0.5 ? "#ff5a3d" : this.challenge.accentColor ?? "#c9701f";
       ctx.lineWidth = 3;
       roundRect(ctx, px0, py0, px1 - px0, py1 - py0, 6);
       ctx.stroke();
@@ -264,6 +301,39 @@ export class ParkourArena2D {
       ctx.beginPath();
       ctx.arc(px, py, 12, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  private drawJumps(ctx: CanvasRenderingContext2D, camera: Camera2D) {
+    const accent = this.challenge.accentColor ?? "#8fd3ff";
+    for (const gap of this.challenge.jumps ?? []) {
+      const [vx0, vy0] = camera.worldToScreen(this.bounds.minX, gap.minY);
+      const [vx1, vy1] = camera.worldToScreen(this.bounds.maxX, gap.maxY);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(vx0, vy0, vx1 - vx0, vy1 - vy0);
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      for (let i = 0; i < 8; i++) {
+        const sx = vx0 + ((i * 53) % Math.max(1, vx1 - vx0));
+        const sy = vy0 + ((i * 29) % Math.max(1, vy1 - vy0));
+        ctx.fillRect(sx, sy, 1.5, 1.5);
+      }
+
+      // pista de despegue: la franja segura justo antes del vacío (nunca
+      // dentro de él, o pisarla ya sería mortal)
+      const [rx0, ry0] = camera.worldToScreen(this.bounds.minX, gap.maxY);
+      const [rx1, ry1] = camera.worldToScreen(this.bounds.maxX, gap.maxY + gap.runway);
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(this.t * 4) * 0.1;
+      ctx.fillStyle = accent;
+      ctx.fillRect(rx0, ry0, rx1 - rx0, ry1 - ry0);
+      ctx.restore();
+      ctx.font = "900 12px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 3;
+      ctx.fillText("ESPACIO: SALTAR", (rx0 + rx1) / 2, (ry0 + ry1) / 2 + 4);
+      ctx.shadowBlur = 0;
     }
   }
 }

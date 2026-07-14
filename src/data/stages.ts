@@ -14,6 +14,8 @@ export type StageId =
   | "planeta_anillos"
   | "planeta_cristal"
   | "estacion_oxido"
+  | "cinturon_asteroides"
+  | "agujero_negro"
   | "sol";
 
 export type PropType = "arbol" | "cactus" | "roca" | "cristal" | "nieve" | "nube" | "tuberia" | "farola";
@@ -271,11 +273,47 @@ export const STAGES: Record<StageId, StageDef> = {
     realm: "solar",
     deepSpace: true,
   },
+  cinturon_asteroides: {
+    id: "cinturon_asteroides",
+    name: "Cinturón de Asteroides Fracturado",
+    description: "Rocas a la deriva, gravedad irregular y un puesto minero abandonado a toda prisa.",
+    order: 13,
+    width: DW,
+    height: DH,
+    groundColor: "#26282e",
+    groundColorAlt: "#2e3038",
+    accentColor: "#8a94a8",
+    skyColor: "#06070a",
+    propType: "roca",
+    propColor: "#5a6070",
+    bossName: "Fragmento Devorador",
+    bossTitle: "El Hambre del Cinturón",
+    realm: "solar",
+    deepSpace: true,
+  },
+  agujero_negro: {
+    id: "agujero_negro",
+    name: "Horizonte de un Agujero Negro",
+    description: "El espacio se dobla sobre sí mismo. Nada que cruza el horizonte vuelve a salir.",
+    order: 14,
+    width: DW,
+    height: DH,
+    groundColor: "#0e0616",
+    groundColorAlt: "#150a1e",
+    accentColor: "#ff8a3d",
+    skyColor: "#020103",
+    propType: "cristal",
+    propColor: "#3a1a5a",
+    bossName: "Singularidad Consciente",
+    bossTitle: "Lo que Queda al Otro Lado",
+    realm: "solar",
+    deepSpace: true,
+  },
   sol: {
     id: "sol",
     name: "El Sol",
     description: "El corazón ardiente del sistema. Nadie ha vuelto de aquí para contarlo... todavía.",
-    order: 13,
+    order: 15,
     width: PW,
     height: PH,
     groundColor: "#4a1400",
@@ -310,7 +348,7 @@ export const PLANET_ORDER: StageId[] = ["planeta_escarlata", "planeta_anillos", 
 // en la Luna de Cristal. A diferencia de los planetas (que necesitan una nave
 // reconstruida a mano), aquí basta con derrotar al jefe para abrir el
 // siguiente, igual que en las 8 etapas originales.
-export const STATION_ORDER: StageId[] = ["estacion_oxido", "sol"];
+export const STATION_ORDER: StageId[] = ["estacion_oxido", "cinturon_asteroides", "agujero_negro", "sol"];
 
 export function nextStage(id: StageId): StageId | null {
   const idx = STAGE_ORDER.indexOf(id);

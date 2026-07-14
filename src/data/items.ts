@@ -157,6 +157,20 @@ export const ITEMS: ItemDef[] = [
   { id: "rueda_eclipse", slot: "rueda", name: "Borde del Eclipse", rarity: "prohibido", price: 550, currency: "diamantes", colorHex: "#1a0a00", colorHex2: "#ffcf3d", description: "Un anillo de luz alrededor de la oscuridad total." },
   { id: "gol_brecha_dimensional", slot: "explosionGol", name: "Brecha Dimensional", rarity: "prohibido", price: 600, currency: "diamantes", colorHex: "#ffcf3d", colorHex2: "#2b0033", description: "El campo entero se rasga por un instante al marcar." },
   { id: "estela_solar", slot: "estela", name: "Estela Solar", rarity: "dios", price: 180, currency: "diamantes", colorHex: "#ff8a3d", description: "Deja tras de sí un rastro que arde durante segundos." },
+
+  // Objetos exclusivos del Cinturón de Asteroides Fracturado
+  { id: "color_roca_fracturada", slot: "color", name: "Roca Fracturada", rarity: "dios", price: 190, currency: "diamantes", colorHex: "#8a94a8", colorHex2: "#2a2c34", description: "Fragmentos de asteroide pulidos hasta brillar." },
+  { id: "rueda_deriva", slot: "rueda", name: "Borde a la Deriva", rarity: "secreto", price: 340, currency: "diamantes", colorHex: "#6a7080", description: "Nunca deja de girar, como las rocas que lo inspiraron." },
+  { id: "gol_impacto_asteroide", slot: "explosionGol", name: "Impacto de Asteroide", rarity: "legendario", price: 125, currency: "diamantes", colorHex: "#8a94a8", colorHex2: "#ff8a3d", description: "El campo tiembla como si un asteroide lo hubiera golpeado de verdad." },
+  { id: "turbo_asteroide", slot: "turbo", name: "Turbo de Asteroide", rarity: "prohibido", price: 620, currency: "diamantes", colorHex: "#8a94a8", description: "Empuja con la fuerza de una roca a la deriva sin gravedad que la frene." },
+  { id: "bocina_alarma_asteroide", slot: "bocina", name: "Alarma de Impacto", rarity: "raro", price: 900, currency: "monedas", description: "La misma alarma que sonaba cada vez que una roca se acercaba demasiado." },
+
+  // Objetos exclusivos del Horizonte de un Agujero Negro
+  { id: "color_horizonte", slot: "color", name: "Horizonte de Sucesos", rarity: "prohibido", price: 999, currency: "diamantes", colorHex: "#0e0616", colorHex2: "#ff8a3d", description: "El borde exacto entre lo que se ve y lo que ya no vuelve." },
+  { id: "rueda_singularidad", slot: "rueda", name: "Borde de Singularidad", rarity: "prohibido", price: 560, currency: "diamantes", colorHex: "#3a1a5a", colorHex2: "#ff8a3d", description: "Un anillo que parece doblar la luz a su alrededor." },
+  { id: "gol_colapso_gravitacional", slot: "explosionGol", name: "Colapso Gravitacional", rarity: "prohibido", price: 650, currency: "diamantes", colorHex: "#ff8a3d", colorHex2: "#0e0616", description: "Por un instante, todo el campo parece caer hacia el centro." },
+  { id: "turbo_horizonte", slot: "turbo", name: "Turbo del Horizonte", rarity: "prohibido", price: 680, currency: "diamantes", colorHex: "#ff8a3d", description: "Cruza el límite antes de que el límite te cruce a ti." },
+  { id: "bocina_singularidad", slot: "bocina", name: "Eco de la Singularidad", rarity: "divino", price: 280, currency: "diamantes", description: "Un sonido que parece repetirse desde el futuro." },
 ];
 
 export function itemsBySlot(slot: ItemSlot): ItemDef[] {

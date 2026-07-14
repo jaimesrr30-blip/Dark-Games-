@@ -101,6 +101,16 @@ export const SHOP_CATALOGS: Record<string, string[]> = {
     "gol_brecha_dimensional",
     "estela_solar",
   ],
+  shop_cinturon_asteroides: [
+    "color_roca_fracturada",
+    "rueda_deriva",
+    "gol_impacto_asteroide",
+  ],
+  shop_agujero_negro: [
+    "color_horizonte",
+    "rueda_singularidad",
+    "gol_colapso_gravitacional",
+  ],
 };
 
 export function shopCatalog(shopId: string): string[] {
